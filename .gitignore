@@ -1,0 +1,60 @@
+# ไม่เอาไฟล์ config ตัวจริงขึ้น Git
+config.json
+
+# ยอมให้อัพโหลดไฟล์ตัวอย่างขึ้น Git (ใส่หรือไม่ใส่ก็ได้ เพื่อความชัวร์)
+!config.example.json
+
+## ==========================================
+## .NET / WPF Visual Studio Templates
+## ==========================================
+# Build results
+[Dd]ebug/
+[Dd]ebug-NetCore/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bbin/
+bin/
+obj/
+
+# Visual Studio Virtual File System
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider & JetBrains IDEs
+.idea/
+*.sln.imbricated
+
+## ==========================================
+## Playwright / Testing Specifics
+## ==========================================
+# Playwright Test Results & Artifacts
+# ละเว้นพวก วิดีโอ, ภาพ Screenshot, และ Trace logs ที่ได้จากการรัน Test
+test-results/
+playwright-report/
+blob-report/
+playwright/.local-browsers/
+
+# หากมีโฟลเดอร์สำหรับเก็บภาพ Screenshots เพื่อทำ Visual Regression Testing (เผื่อไว้)
+# โดยปกติจะเก็บตัวเบสไลน์ไว้ แต่ละเว้นตัวที่เจเนอเรตมาเทียบใหม่
+# *snapshots-actual/
+
+## ==========================================
+## Packages & Dependencies
+## ==========================================
+# NuGet Packages
+*.nuget.props
+*.nuget.targets
+packages/
+
+## ==========================================
+## OS / Miscellaneous
+## ==========================================
+.DS_Store
+Thumbs.db
+*.log

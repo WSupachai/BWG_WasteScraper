@@ -1,0 +1,37 @@
+﻿<Window x:Class="BWG_WasteScraper.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BWG Waste Scraper v1.0 - เข้าสู่ระบบ" Height="420" Width="400"
+        Background="#121214" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+
+    <Border Padding="30" VerticalAlignment="Center">
+        <StackPanel>
+            <TextBlock Text="BWG LOGIN" FontSize="20" FontWeight="Bold" Foreground="#00FF99" HorizontalAlignment="Center" />
+            <TextBlock Text="ยืนยันตัวตนผ่านฐานข้อมูลระบบ" FontSize="11" Foreground="#8E8E93" HorizontalAlignment="Center" Margin="0,5,0,25"/>
+
+            <TextBlock Text="USERNAME" FontSize="11" FontWeight="SemiBold" Foreground="#8E8E93" Margin="0,0,0,6"/>
+            <TextBox x:Name="TxtUsername" Background="#18181C" Foreground="#E5E5EA" BorderBrush="#2A2A30" Height="38" VerticalContentAlignment="Center" Padding="10,0" FontSize="14" CaretBrush="#00FF99" Margin="0,0,0,15"/>
+
+            <TextBlock Text="PASSWORD" FontSize="11" FontWeight="SemiBold" Foreground="#8E8E93" Margin="0,0,0,6"/>
+            <PasswordBox x:Name="TxtPassword" Background="#18181C" Foreground="#E5E5EA" BorderBrush="#2A2A30" Height="38" VerticalContentAlignment="Center" Padding="10,0" FontSize="14" CaretBrush="#00FF99" Margin="0,0,0,25"/>
+
+            <Button x:Name="BtnLoginSubmit" Content="🔓 ตรวจสอบสิทธิ์เข้าใช้งาน" Height="45" FontSize="15" FontWeight="Bold" Cursor="Hand" Click="BtnLoginSubmit_Click">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#00FF99"/>
+                        <Setter Property="Foreground" Value="#040405"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+    </Border>
+</Window>

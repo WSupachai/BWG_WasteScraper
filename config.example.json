@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=ใส่ไอพีตรงนี้;Database=ชื่อดีบี;User Id=ยูสเซอร์;Password=รหัสผ่าน;"
+  }
+}
