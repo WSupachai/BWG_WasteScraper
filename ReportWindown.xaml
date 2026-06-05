@@ -1,0 +1,124 @@
+﻿<Window x:Class="BWG_WasteScraper.Reportwindown"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BWG_WasteScraper"
+        mc:Ignorable="d"
+        Title="ระบบออกรายงานข้อมูลสิ่งปฏิกูล - BWG" Height="700" Width="1000"
+        WindowStartupLocation="CenterScreen" Background="#121214" >
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="📊 SYSTEM REPORT GENERATOR" Foreground="#00FF99" FontSize="20" FontWeight="Bold"/>
+            <TextBlock Text="ดึงข้อมูลรายงานเชื่อมโยงตาราง HD และ DT ตามเงื่อนไขคัดกรองตัวเลือกหน้าแรก" Foreground="#88888C" FontSize="12" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="#1A1A1E" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1.5*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="🏢 เลือกบริษัทเป้าหมาย" Foreground="#A0A0A5" FontSize="12" Margin="5,0,5,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="📄 เลขที่คำขอ (ค้นหาบางส่วนได้)" Foreground="#A0A0A5" FontSize="12" Margin="5,0,5,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="🚦 ประเถทคำขอ" Foreground="#A0A0A5" FontSize="12" Margin="5,0,5,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="📅 ตั้งแต่วันที่ยื่น" Foreground="#A0A0A5" FontSize="12" Margin="5,0,5,5"/>
+                <TextBlock Grid.Row="0" Grid.Column="4" Text="📅 ถึงวันที่ยื่น" Foreground="#A0A0A5" FontSize="12" Margin="5,0,5,5"/>
+
+                <ComboBox Grid.Row="1" Grid.Column="0" x:Name="CboCompany" Height="35" Margin="5,0,5,0" Background="#26262B" Foreground="Black" BorderBrush="#3F3F46" VerticalContentAlignment="Center" >
+                    <ComboBoxItem Content="-- ทั้งหมด --" Tag="" IsSelected="True"/>
+                    <ComboBoxItem Content="บริษัท BWG จำกัด (20190300225401)" Tag="20190300225401"/>
+                    <ComboBoxItem Content="บริษัท BWG จำกัด (10190000825494)" Tag="10190000825494"/>
+                    <ComboBoxItem Content="บริษัท BWG จำกัด (82170100125618)" Tag="82170100125618"/>
+                </ComboBox>
+
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtReqNumber" Height="35" Margin="5,0,5,0" Background="#26262B" Foreground="White" BorderBrush="#3F3F46" VerticalContentAlignment="Center" Padding="5,0,0,0"/>
+
+                <ComboBox Grid.Row="1" Grid.Column="2" x:Name="CboStatus" Height="35" Margin="5,0,5,0" Background="#26262B" Foreground="Black" BorderBrush="#3F3F46" VerticalContentAlignment="Center">
+                    <ComboBoxItem Content="-- ทั้งหมด --" Tag="" IsSelected="True"/>
+                    <ComboBoxItem Content="เพิ่มเติมรายการ" Tag="เพิ่มเติมรายการ"/>
+                    <ComboBoxItem Content="ยื่นขอใหม่" Tag="ยื่นขอใหม่"/>
+                    <ComboBoxItem Content="เปลี่ยนเปลงปริมาณ" Tag="เปลี่ยนเปลงปริมาณ"/>
+                </ComboBox>
+
+                <DatePicker Grid.Row="1" Grid.Column="3" x:Name="DpFrom" Height="35" Margin="5,0,5,0" VerticalContentAlignment="Center"/>
+                <DatePicker Grid.Row="1" Grid.Column="4" x:Name="DpTo" Height="35" Margin="5,0,5,0" VerticalContentAlignment="Center"/>
+
+                <Button Grid.Row="1" Grid.Column="5" x:Name="BtnSearch" Content="🔍 ค้นหา" Width="100" Height="35" Margin="5,0,5,0" Background="#26262B" Foreground="#00FF99" BorderBrush="#00FF99" BorderThickness="1" FontWeight="Bold" Cursor="Hand" Click="BtnSearch_Click"/>
+            </Grid>
+        </Border>
+
+        <DataGrid Grid.Row="2" x:Name="DgPreview" AutoGenerateColumns="False" IsReadOnly="True" Background="#1A1A1E" RowBackground="#1E1E24" AlternatingRowBackground="#26262B" Foreground="White" BorderBrush="#26262B" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#3F3F46" CanUserAddRows="False" >
+            <DataGrid.Resources>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#007ACC"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Padding" Value="10,5,10,5"/>
+                </Style>
+            </DataGrid.Resources>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้ก่อกำเนิด" Binding="{Binding เลขทะเบียนโรงงานผู้ก่อกำเนิด}" Width="160"/>
+                <DataGridTextColumn Header="ชื่อโรงงาน" Binding="{Binding ชื่อโรงงาน}" Width="180"/>
+                <DataGridTextColumn Header="ประกอบกิจการ" Binding="{Binding ประกอบกิจการ}" Width="150"/>
+                <DataGridTextColumn Header="ที่ตั้งโรงงาน" Binding="{Binding ที่ตั้งโรงงาน}" Width="200"/>
+                <DataGridTextColumn Header="ชื่อผู้รับใบอนุญาต" Binding="{Binding ชื่อผู้รับใบอนุญาต}" Width="150"/>
+
+                <DataGridTextColumn Header="วันที่ยื่นขอ" Binding="{Binding วันที่ยื่นขอ, StringFormat=\{0:dd/MM/yyyy\}}" Width="110"/>
+                <DataGridTextColumn Header="ปี" Binding="{Binding ปี}" Width="60"/>
+                <DataGridTextColumn Header="ประเภทคำขอ" Binding="{Binding ประเภทคำขอ}" Width="150"/>
+                <DataGridTextColumn Header="เลขที่คำขอ" Binding="{Binding เลขที่คำขอ}" Width="130"/>
+                <DataGridTextColumn Header="สถานะหลัก" Binding="{Binding สถานะคำขอหลัก}" Width="130"/>
+
+                <DataGridTextColumn Header="ลำดับย่อย" Binding="{Binding ลำดับย่อย}" Width="80"/>
+                <DataGridTextColumn Header="รหัสประเภทหรือชนิดของเสีย" Binding="{Binding รหัสประเภทหรือชนิดของเสีย}" Width="160"/>
+                <DataGridTextColumn Header="ชื่อของเสีย" Binding="{Binding ชื่อของเสีย}" Width="180"/>
+                <DataGridTextColumn Header="ปริมาณ (ตัน)" Binding="{Binding [ปริมาณ(ตัน)]}" Width="100"/>
+                <DataGridTextColumn Header="รหัสการจัดการ" Binding="{Binding รหัสการจัดการ}" Width="110"/>
+                <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้รับบริการ" Binding="{Binding เลขทะเบียนโรงงานผู้รับบริการ}" Width="180"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="3" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="TxtReportStatus" Text="🟢 พร้อมระบุตัวกรองข้อมูลรายงาน..." Foreground="#00FF99" FontSize="13" VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1" x:Name="BtnExportExcel" Content="📊 ส่งออกรายงานเป็น Excel (.xlsx)" Width="260" Height="45" Background="#00FF99" Foreground="#121214" FontSize="14" FontWeight="Bold" Cursor="Hand" Click="BtnExportExcel_Click">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>

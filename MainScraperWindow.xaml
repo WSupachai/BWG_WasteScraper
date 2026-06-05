@@ -80,7 +80,7 @@
 
             <Button Grid.Column="1" x:Name="BtnStart" Content="🚀 เริ่มกวาดข้อมูลคำขอ" Width="180" Height="45" FontSize="14" FontWeight="Bold" Cursor="Hand" Click="BtnStart_Click" Margin="0,0,10,0" Background="#00FF99" Foreground="#040405"/>
 
-            <Button Grid.Column="2" x:Name="BtnExportExcel" Content="📊 ส่งออกรายงาน Excel" Width="180" Height="45" FontSize="14" FontWeight="Bold" Cursor="Hand" Click="BtnExportExcel_Click" Background="#007ACC" Foreground="White">
+            <Button Grid.Column="2" x:Name="BtnExportExcel" Content="📊 รายงาน " Width="180" Height="45" FontSize="14" FontWeight="Bold" Cursor="Hand" Click="BtnExportExcel_Click" Background="#007ACC" Foreground="White">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Template">

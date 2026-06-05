@@ -72,7 +72,7 @@ namespace BWG_WasteScraper
                     // 🎯 สะสมชุดคำสั่ง SQL ทั้งหมด (ทั้งตาราง HD และ DT)
                     StringBuilder sqlBuilder = new StringBuilder();
 
-                    UpdateLog("📦 กำลังตรวจสอบความพร้อมของ Chromium Browser หลังบ้าน...");
+                    UpdateLog("📦 กำลังตรวจสอบความพร้อมของ Chromium Browser ...");
                     Microsoft.Playwright.Program.Main(new[] { "install" });
 
                     UpdateLog("🚀 เริ่มต้นระบบ Playwright แบบซ่อนหน้าต่าง...");
@@ -102,10 +102,10 @@ namespace BWG_WasteScraper
                     await lengthSelect.SelectOptionAsync(new[] { "100" });
 
                     var firstRowOfMyTable = page.Locator("#waste_pro_table1 tbody tr").First;
-                    await firstRowOfMyTable.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+                    await firstRowOfMyTable.WaitForAsync(new()  { Timeout = 60000 , State = WaitForSelectorState.Visible });
 
                     // ====================================================================
-                    // 📋 [ส่วนเดิม] ดึงชื่อหัวข้อคอลัมน์จากหน้าแรกสุด (ไม่มีการแก้ไข)
+                    // 📋 ดึงชื่อหัวข้อคอลัมน์จากหน้าแรกสุด
                     // ====================================================================
                     var mainThElements = await page.Locator("#waste_pro_table1 thead th").AllAsync();
                     var mainHeadersList = new List<string>();
@@ -160,16 +160,16 @@ namespace BWG_WasteScraper
 
                         // 🎯 1. ใช้ลอจิก IF NOT EXISTS ดักเช็กในระดับคำสั่ง SQL เพื่อไม่ให้มีการเก็บข้อมูลซ้ำถ้าเจอ RequestNumber เดิม
                         StringBuilder rowSqlBuilder = new StringBuilder();
-                        rowSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperHD WHERE RequestNumber = '{safeReqNum}')");
+                        rowSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperHD WHERE RequestNumber = '{safeReqNum}' AND CompanyCode = '{selectedCompanyId}')");
                         rowSqlBuilder.AppendLine("BEGIN");
                         // ยิงบันทึก HD ลงคิว SQL
-                        rowSqlBuilder.AppendLine(" INSERT INTO tbWasteScraperHD (StartPage, RequestNumber, RequestType, SubmissionDate, [Status], IsCheck, InsertDate)");
-                        rowSqlBuilder.AppendLine($" VALUES ({startPageValue}, '{safeReqNum}', N'{requestType}', {formattedDateForSql}, '{statusValue}', 'N', GETDATE());");
+                        rowSqlBuilder.AppendLine(" INSERT INTO tbWasteScraperHD (StartPage, RequestNumber, RequestType, SubmissionDate, [Status], IsCheck, InsertDate,CompanyCode)");
+                        rowSqlBuilder.AppendLine($" VALUES ({startPageValue}, '{safeReqNum}', N'{requestType}', {formattedDateForSql}, '{statusValue}', 'N', GETDATE() ,{selectedCompanyId});");
                         rowSqlBuilder.AppendLine("END");
                         rowSqlBuilder.AppendLine("ELSE");
                         rowSqlBuilder.AppendLine("BEGIN");
                         // 🔄 กรณีที่ 2: มีเลขคำขอนี้อยู่แล้ว -> ทำการอัปเดตสเตตัสพิกัดเดิมให้เป็น 'Y' ทันที
-                        rowSqlBuilder.AppendLine($" UPDATE tbWasteScraperHD SET IsCheck = 'Y', [Status] = '{statusValue}' WHERE RequestNumber = '{safeReqNum}';");
+                        rowSqlBuilder.AppendLine($" UPDATE tbWasteScraperHD SET IsCheck = 'Y', [Status] = '{statusValue}' WHERE RequestNumber = '{safeReqNum}' AND CompanyCode = '{selectedCompanyId}' ;");
                         rowSqlBuilder.AppendLine("END");
 
                         // ยัดสคริปต์ฝั่ง HD ลงกล่องสะสมหลัก
@@ -272,7 +272,7 @@ namespace BWG_WasteScraper
                                                 // เจาะทะลวงเข้าสู่หน้าต่าง Modal ชั้นลึกสุด
                                                 var detailModal = page.Locator(".modal-content:visible").Last;
                                                 var firstInputInModal = detailModal.Locator("input").First;
-                                                await firstInputInModal.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20000 });
+                                                await firstInputInModal.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 60000 });
 
                                                 // ====================================================================
                                                 // ✨ หน้าต่างลึกสุดกางเต็มจอสำเร็จ! เริ่มสกัดข้อมูลรายกล่องคู่คอลัมน์...
@@ -344,33 +344,6 @@ namespace BWG_WasteScraper
                                                     }
                                                 }
 
-                                                /*
-                                                // คลัง Dictionary ดักเก็บข้อมูลกล่องคู่ป้ายกำกับ (Label)
-                                                Dictionary<string, string> dbData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                                                var labels = await detailModal.Locator("label").AllAsync();
-                                                foreach (var lbl in labels)
-                                                {
-                                                    string headerText = await lbl.InnerTextAsync();
-                                                    headerText = headerText.Replace("\n", " ").Replace("\r", "").Trim();
-                                                    if (string.IsNullOrWhiteSpace(headerText) || headerText.Contains("เอกสารประกอบ")) continue;
-
-                                                    var input = lbl.Locator("xpath=..//input | ..//textarea | ..//select").First;
-                                                    if (await input.CountAsync() > 0)
-                                                    {
-                                                        var isInTable = input.Locator("xpath=ancestor::table[@id='ProduceTable']");
-                                                        if (await isInTable.CountAsync() > 0) continue;
-
-                                                        string val = await input.InputValueAsync();
-                                                        val = val.Replace("\n", " ").Replace("\r", "").Trim();
-
-                                                        detailHeadersList.Add($"\"{headerText}\"");
-                                                        detailValuesList.Add($"\"{val}\"");
-
-                                                        dbData[headerText] = val; // ผูกข้อมูลใส่ Dictionary
-                                                    }
-                                                }*/
-
                                                 // 📋 [ของเดิมเป๊ะ] จัดการรวมความกว้างบันทึกสายสตริงลงไฟล์สำรอง CSV 
                                                 string detailHeaderStr = string.Join(",", detailHeadersList);
                                                 string detailDataStr = string.Join(",", detailValuesList);
@@ -383,25 +356,7 @@ namespace BWG_WasteScraper
                                                 // ====================================================================
                                                 try
                                                 {
-                                                    /*
-                                                    string yearVal = dbData.ContainsKey("ปี") ? dbData["ปี"] : "0";
-                                                    string facRegNo = dbData.ContainsKey("เลขทะเบียนโรงงาน") ? dbData["เลขทะเบียนโรงงาน"] : "";
-                                                    string facName = dbData.ContainsKey("ชื่อโรงงาน") ? dbData["ชื่อโรงงาน"] : "";
-                                                    string bizOp = dbData.ContainsKey("ประกอบกิจการ") ? dbData["ประกอบกิจการ"] : "";
-                                                    string addr = dbData.ContainsKey("ที่ตั้ง") ? dbData["ที่ตั้ง"] : "";
-                                                    string licensee = dbData.ContainsKey("ชื่อผู้รับใบอนูญาต") ? dbData["ชื่อผู้รับใบอนูญาต"] : "";
-                                                    string tax = dbData.ContainsKey("เลขประจำตัวผู้เสียภาษี") ? dbData["เลขประจำตัวผู้เสียภาษี"] : "";
-                                                    string phone = dbData.ContainsKey("โทรศัพท์") ? dbData["โทรศัพท์"] : "";
-                                                    string fax = dbData.ContainsKey("โทรสาร") ? dbData["โทรสาร"] : "";
-                                                    string itemNo = dbData.ContainsKey("รายการที่") ? dbData["รายการที่"] : "0";
-                                                    string wasteCode = dbData.ContainsKey("รหัสประเภทหรือชนิด") ? dbData["รหัสประเภทหรือชนิด"] : "";
-                                                    string haz = dbData.ContainsKey("HAZ") ? dbData["HAZ"] : "";
-                                                    string prop = dbData.ContainsKey("ชื่อสิ่งปฏิกูลหรือวัสดุที่ไม่ใช้แล้ว") ? dbData["ชื่อสิ่งปฏิกูลหรือวัสดุที่ไม่ใช้แล้ว"] : "";
-                                                    string wasteName = dbData.ContainsKey("WasteName") ? dbData["WasteName"] : "";
-                                                    if (string.IsNullOrEmpty(wasteName) && dbData.ContainsKey("ชื่อสิ่งปฏิกูลหรือวัสดุที่ไม่ใช้แล้ว")) wasteName = dbData["ชื่อสิ่งปฏิกูลหรือวัสดุที่ไม่ใช้แล้ว"];
-                                                    string process = dbData.ContainsKey("รายละเอียดของกิจกรรมที่ก่อให้เกิดของเสีย") ? dbData["รายละเอียดของกิจกรรมที่ก่อให้เกิดของเสีย"] : "";
-                                                    string reason = dbData.ContainsKey("เหตุผลการพิจารณา") ? dbData["เหตุผลการพิจารณา"] : "";*/
-                                                    
+                                                
                                                     // ปรับแต่งฟอร์แมตตัวเลขและวันที่ให้ปลอดภัยต่อโครงสร้าง MSSQL
                                                    
                                                     int.TryParse(yearVal, out int parsedYear);
@@ -413,11 +368,7 @@ namespace BWG_WasteScraper
 
                                                     string formattedDeadlineSql = "NULL";
                                                     if (DateTime.TryParse(rawDeadline, out DateTime deadDate)) { formattedDeadlineSql = $"'{deadDate:yyyy-MM-dd HH:mm:ss}'"; }
-                                                    /*
-                                                    // 🎯 จัดหนักต่อประโยคคำสั่ง SQL ครบทุกคอลัมน์ของ tbWasteScraperDT ตามความต้องการ
-                                                    sqlBuilder.AppendLine("INSERT INTO tbWasteScraperDT (RequestNumber, SequenceNumber, OperatorCode, OperatorName, [Type], QuantityMetricTons, ManagementCode, AcknowledgementDeadline, [Status], [Year], FactoryRegistrationNumber, FactoryName, BusinessOperation, [Address], LicenseeName, TaxID, Phone, Fax, ItemNumber, WasteTypeCode, HazStatus, Properties, WasteName, WasteGenerationProcess, EvaluationReason)");
-                                                    sqlBuilder.AppendLine($"VALUES ('{safeReqNum}', {sequenceCounter}, '{operatorCode.Replace("'", "''")}', N'{operatorName.Replace("'", "''")}', N'{typeValue.Replace("'", "''")}', {qtyDecimal}, '{managementCode.Replace("'", "''")}', {formattedDeadlineSql}, '{statusDt.Replace("'", "''")}', {parsedYear}, '{facRegNo.Replace("'", "''")}', N'{facName.Replace("'", "''")}', N'{bizOp.Replace("'", "''")}', N'{addr.Replace("'", "''")}', N'{licensee.Replace("'", "''")}', '{tax.Replace("'", "''")}', '{phone.Replace("'", "''")}', '{fax.Replace("'", "''")}', {parsedItemNo}, '{wasteCode.Replace("'", "''")}', '{haz.Replace("'", "''")}', N'{prop.Replace("'", "''")}', N'{wasteName.Replace("'", "''")}', N'{process.Replace("'", "''")}', N'{reason.Replace("'", "''")}');");
-                                                    */
+                                                 
                                                     // 🎯 2. ใช้ลอจิก IF NOT EXISTS คลุมฝั่งตาราง DT ด้วยเช่นกัน เพื่อไม่ให้บันทึกข้อมูลย่อยซ้ำซ้อนซ่อนเงื่อน
                                                     StringBuilder dtSqlBuilder = new StringBuilder();
                                                     dtSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperDT WHERE RequestNumber = '{safeReqNum}' AND SequenceNumber = {sequenceCounter})");
@@ -488,19 +439,11 @@ namespace BWG_WasteScraper
                         }
                     }
 
-                    //// สร้างไฟล์สำรอง CSV เก็บไว้ที่หน้าจอ Desktop ตามระบบสเต็ปเดิมของพี่
-                    //string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    //string fileName = $"AllItemsExport_{selectedCompanyId}_{timestamp}.csv";
-                    //string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                    //string filePath = Path.Combine(desktopPath, fileName);
-                    //var utf8WithBom = new UTF8Encoding(true);
-                    //await File.WriteAllLinesAsync(filePath, exportData, utf8WithBom);
-                    //UpdateLog($"💾 บันทึกไฟล์สำรอง .csv ไว้ที่หน้าจอ Desktop เรียบร้อยครับ");
-
                     Dispatcher.Invoke(() =>
                     {
                         // โยนปุ่มตัวเอง และสร้าง RoutedEventArgs ว่าง ๆ ส่งเข้าไป
-                        BtnExportExcel_Click(BtnExportExcel, new RoutedEventArgs());
+                        //BtnExportExcel_Click(BtnExportExcel, new RoutedEventArgs());
+                        ExportExcel();
                     });
 
                     UpdateStatus("✅ สกัดและจัดเก็บข้อมูลเข้าฐานข้อมูล HD/DT เรียบร้อย 100%!", "#00FF99");
@@ -524,120 +467,118 @@ namespace BWG_WasteScraper
             await Task.Delay(delay);
         }
 
-        private async void BtnExportExcel_Click(object sender, RoutedEventArgs e)
-    {
-
-            // ดักจับรหัสบริษัทที่ User เลือกบนหน้าจอ เพื่อเอาไปคิวรี่เฉพาะของบริษัทนั้น ๆ
-            string selectedCompanyId = "";
-            Dispatcher.Invoke(() =>
-            {
-                if (CboCompany.SelectedItem is ComboBoxItem selectedItem)
-                {
-                    selectedCompanyId = selectedItem.Tag?.ToString() ?? "";
-                }
-            });
-
-            if (string.IsNullOrWhiteSpace(selectedCompanyId))
-            {
-                MessageBox.Show("กรุณาเลือกบริษัทเป้าหมายก่อนส่งออกรายงานครับ", "แจ้งเตือน", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-       BtnExportExcel.IsEnabled = false;
-        UpdateStatus("⏳ กำลังดึงข้อมูลและสร้างไฟล์ Excel ด้วย ClosedXML...", "#007ACC");
-
-        await Task.Run(async () =>
+        private  void BtnExportExcel_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // 1. คิวรี่ดึงข้อมูลจาก Database (เหมือนเดิมเป๊ะ)
-                string query = @$"
-                      SELECT                   
-                    h.RequestNumber AS เลขที่คำขอ,
-                    h.RequestType AS ประเภทคำขอ,
-                    h.SubmissionDate AS วันที่ยื่นขอ,
-                    h.[Status] AS สถานะคำขอหลัก,
-                    d.SequenceNumber AS ลำดับย่อย,
-                    d.[Year] AS ปี,
-                    d.FactoryRegistrationNumber AS เลขทะเบียนโรงงาน,
-                    d.FactoryName AS ชื่อโรงงาน,
-                    d.BusinessOperation AS ประกอบกิจการ,
-                    d.[Address] AS ที่ตั้งโรงงาน,
-                    d.LicenseeName AS ชื่อผู้รับใบอนุญาต,
-                    d.TaxID AS เลขประจำตัวผู้เสียภาษี,
-                    d.Phone AS โทรศัพท์,
-                    d.ItemNumber AS รายการที่,
-                    d.WasteTypeCode AS รหัสประเภทหรือชนิดของเสีย,
-                    d.HazStatus AS HAZ,
-                    d.Properties AS คุณสมบัติของเสีย,
-                    d.WasteName AS ชื่อของเสีย,
-                    d.WasteGenerationProcess AS รายละเอียดที่ก่อให้เกิดของเสีย,
-                    d.EvaluationReason AS เหตุผลการพิจารณา,
-                    d.QuantityMetricTons AS [ปริมาณ(ตัน)],
-                    d.ManagementCode AS รหัสการจัดการ,
-                    d.OperatorCode AS เลขทะเบียนโรงงานผู้รับบริการ,
-                    d.OperatorName AS ชื่อผู้รับดำเนินการ,
-                    d.Type AS ประเภท
-                FROM tbWasteScraperHD h
-                LEFT JOIN tbWasteScraperDT d ON h.RequestNumber = d.RequestNumber
-                WHERE h.ischeck <> 'Y' AND d.OperatorCode LIKE '{selectedCompanyId}%'
-                ORDER BY h.SubmissionDate ASC, d.SequenceNumber ASC;";
+            Reportwindown report = new Reportwindown();
+            report.Show();     
+        }
 
-                System.Data.DataTable dtReport = new System.Data.DataTable();
-                using (SqlConnection conn = new SqlConnection(_connString))
-                {
-                    await conn.OpenAsync();
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        using (SqlDataAdapter da = new SqlDataAdapter(cmd)) { da.Fill(dtReport); }
-                    }
-                }
+        private async void ExportExcel()
+        {
+            
+               // ดักจับรหัสบริษัทที่ User เลือกบนหน้าจอ เพื่อเอาไปคิวรี่เฉพาะของบริษัทนั้น ๆ
+               string selectedCompanyId = "";
+               Dispatcher.Invoke(() =>
+               {
+                   if (CboCompany.SelectedItem is ComboBoxItem selectedItem)
+                   {
+                       selectedCompanyId = selectedItem.Tag?.ToString() ?? "";
+                   }
+               });
 
-                if (dtReport.Rows.Count == 0)
-                {
-                    Dispatcher.Invoke(() => MessageBox.Show("ไม่พบข้อมูลที่ดึงสำเร็จในระบบ", "รายงาน"));
-                    return;
-                }
+               if (string.IsNullOrWhiteSpace(selectedCompanyId))
+               {
+                   MessageBox.Show("กรุณาเลือกบริษัทเป้าหมายก่อนส่งออกรายงานครับ", "แจ้งเตือน", MessageBoxButton.OK, MessageBoxImage.Warning);
+                   return;
+               }
 
-                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string fileName = $"WasteReport_{selectedCompanyId}_{timestamp}.xlsx";
-                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string filePath = Path.Combine(desktopPath, fileName);
+          BtnExportExcel.IsEnabled = false;
+           UpdateStatus("⏳ กำลังดึงข้อมูลและสร้างไฟล์ Excel ด้วย ClosedXML...", "#007ACC");
 
-                // 🎯 2. สั่งเขียนไฟล์ด้วย ClosedXML (ฟรี 100% ไม่มีตัวกรองสิทธิ์กวนใจ)
-                using (var workbook = new XLWorkbook())
-                {
-                    // โหลดข้อมูลจาก DataTable ลงชีต และตั้งชื่อชีต
-                    var worksheet = workbook.Worksheets.Add(dtReport, "ข้อมูลสิ่งปฏิกูล");
+           await Task.Run(async () =>
+           {
+               try
+               {
+                   string query = @$"
+                         SELECT                   
+                               d.FactoryRegistrationNumber AS เลขทะเบียนโรงงานผู้ก่อกำเนิด, 
+                   d.FactoryName AS ชื่อโรงงาน,
+                   d.BusinessOperation AS ประกอบกิจการ,
+                   d.[Address] AS ที่ตั้งโรงงาน,
+                   d.LicenseeName AS ชื่อผู้รับใบอนุญาต,
+                   h.SubmissionDate AS วันที่ยื่นขอ,
+                   d.[Year] AS ปี,
+                   h.RequestType AS ประเภทคำขอ,
+                   h.RequestNumber AS เลขที่คำขอ,
+                   h.[Status] AS สถานะคำขอหลัก,
+                   d.SequenceNumber AS ลำดับย่อย,
+                   d.WasteTypeCode AS รหัสประเภทหรือชนิดของเสีย,
+                   d.WasteName AS ชื่อของเสีย,
+                   d.QuantityMetricTons AS [ปริมาณ(ตัน)],
+                   d.ManagementCode AS รหัสการจัดการ,
+                   d.OperatorCode AS เลขทะเบียนโรงงานผู้รับบริการ
+                   FROM tbWasteScraperHD h
+                   LEFT JOIN tbWasteScraperDT d ON h.RequestNumber = d.RequestNumber
+                   WHERE h.ischeck <> 'Y' AND d.OperatorCode LIKE '{selectedCompanyId}%'
+                   ORDER BY h.SubmissionDate ASC, d.SequenceNumber ASC;";
 
-                    // ตกแต่งหัวตารางเป็นสีน้ำเงินตัวอักษรขาวเท่ ๆ
-                    var headerRange = worksheet.Row(1).CellsUsed();
-                    headerRange.Style.Font.Bold = true;
-                    headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#007ACC");
-                    headerRange.Style.Font.FontColor = XLColor.White;
+                   System.Data.DataTable dtReport = new System.Data.DataTable();
+                   using (SqlConnection conn = new SqlConnection(_connString))
+                   {
+                       await conn.OpenAsync();
+                       using (SqlCommand cmd = new SqlCommand(query, conn))
+                       {
+                           using (SqlDataAdapter da = new SqlDataAdapter(cmd)) { da.Fill(dtReport); }
+                       }
+                   }
 
-                    // สั่งขยายความกว้างคอลัมน์อัตโนมัติ (AutoFit)
-                    worksheet.Columns().AdjustToContents();
+                   if (dtReport.Rows.Count == 0)
+                   {
+                       Dispatcher.Invoke(() => MessageBox.Show("ไม่พบข้อมูลที่ดึงสำเร็จในระบบ", "รายงาน"));
+                       return;
+                   }
 
-                    // บันทึกไฟล์ลง Desktop
-                    workbook.SaveAs(filePath);
-                }
+                   string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                   string fileName = $"WasteReport_{selectedCompanyId}_{timestamp}.xlsx";
+                   string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                   string filePath = Path.Combine(desktopPath, fileName);
 
-                UpdateLog($"🏆 SUCCESSFUL! ส่งออกสำเร็จด้วย ClosedXML ชื่อไฟล์: '{fileName}'");
-            }
-            catch (Exception ex)
-            {
-                UpdateLog($"❌ ClosedXML ขัดข้อง: {ex.Message}");
-            }
-            finally
-            {
-                Dispatcher.Invoke(() => {
-                    BtnExportExcel.IsEnabled = true;
-                    UpdateStatus("✅ ส่งออกรายงาน Excel สำเร็จ!", "#00FF99");
-                });
-            }
-        });
-    }
+                   // 🎯 2. สั่งเขียนไฟล์ด้วย ClosedXML (ฟรี 100% ไม่มีตัวกรองสิทธิ์กวนใจ)
+                   using (var workbook = new XLWorkbook())
+                   {
+                       // โหลดข้อมูลจาก DataTable ลงชีต และตั้งชื่อชีต
+                       var worksheet = workbook.Worksheets.Add(dtReport, "ข้อมูลสิ่งปฏิกูล");
+
+                       // ตกแต่งหัวตารางเป็นสีน้ำเงินตัวอักษรขาวเท่ ๆ
+                       var headerRange = worksheet.Row(1).CellsUsed();
+                       headerRange.Style.Font.Bold = true;
+                       headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#007ACC");
+                       headerRange.Style.Font.FontColor = XLColor.White;
+
+                       // สั่งขยายความกว้างคอลัมน์อัตโนมัติ (AutoFit)
+                       worksheet.Columns().AdjustToContents();
+
+                       // บันทึกไฟล์ลง Desktop
+                       workbook.SaveAs(filePath);
+                   }
+
+                   UpdateLog($"🏆 SUCCESSFUL! ส่งออกสำเร็จด้วย ClosedXML ชื่อไฟล์: '{fileName}'");
+               }
+               catch (Exception ex)
+               {
+                   UpdateLog($"❌ ClosedXML ขัดข้อง: {ex.Message}");
+               }
+               finally
+               {
+                   Dispatcher.Invoke(() => {
+                       BtnExportExcel.IsEnabled = true;
+                       UpdateStatus("✅ ส่งออกรายงาน Excel สำเร็จ!", "#00FF99");
+                   });
+               }
+
+           });
+
+        }
 
     }
 }
