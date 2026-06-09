@@ -65,34 +65,86 @@
             </Grid>
         </Border>
 
-        <DataGrid Grid.Row="2" x:Name="DgPreview" AutoGenerateColumns="False" IsReadOnly="True" Background="#1A1A1E" RowBackground="#1E1E24" AlternatingRowBackground="#26262B" Foreground="White" BorderBrush="#26262B" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#3F3F46" CanUserAddRows="False" >
+        <DataGrid Grid.Row="2" x:Name="DgPreview" 
+                  AutoGenerateColumns="False" 
+                  IsReadOnly="True" 
+                  Background="#1A1A1E" 
+                  RowBackground="#1E1E24" 
+                  AlternatingRowBackground="#26262B" 
+                  Foreground="White" 
+                  BorderBrush="#3F3F46" 
+                  BorderThickness="1"
+                  GridLinesVisibility="All" 
+                  HorizontalGridLinesBrush="#3F3F46" 
+                  VerticalGridLinesBrush="#3F3F46" 
+                  CanUserAddRows="False" 
+                  RowHeight="32"
+                  FontSize="13"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch">
+
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="#007ACC"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
-                    <Setter Property="Padding" Value="10,5,10,5"/>
+                    <Setter Property="Padding" Value="12,8,12,8"/>
+                    <Setter Property="BorderBrush" Value="#3F3F46"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                </Style>
+
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Padding" Value="8,4,8,4"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="DataGridCell">
+                                <Border Padding="{TemplateBinding Padding}" 
+                                        Background="{TemplateBinding Background}" 
+                                        BorderBrush="{TemplateBinding BorderBrush}" 
+                                        BorderThickness="{TemplateBinding BorderThickness}" 
+                                        SnapsToDevicePixels="True">
+                                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#00FF99"/>
+                            <Setter Property="Foreground" Value="#121214"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#2D2D34"/>
+                        </Trigger>
+                    </Style.Triggers>
                 </Style>
             </DataGrid.Resources>
+
             <DataGrid.Columns>
-                <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้ก่อกำเนิด" Binding="{Binding เลขทะเบียนโรงงานผู้ก่อกำเนิด}" Width="160"/>
-                <DataGridTextColumn Header="ชื่อโรงงาน" Binding="{Binding ชื่อโรงงาน}" Width="180"/>
-                <DataGridTextColumn Header="ประกอบกิจการ" Binding="{Binding ประกอบกิจการ}" Width="150"/>
-                <DataGridTextColumn Header="ที่ตั้งโรงงาน" Binding="{Binding ที่ตั้งโรงงาน}" Width="200"/>
-                <DataGridTextColumn Header="ชื่อผู้รับใบอนุญาต" Binding="{Binding ชื่อผู้รับใบอนุญาต}" Width="150"/>
+                <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้ก่อกำเนิด" Binding="{Binding เลขทะเบียนโรงงานผู้ก่อกำเนิด}" Width="180"/>
+                <DataGridTextColumn Header="ชื่อโรงงาน" Binding="{Binding ชื่อโรงงาน}" Width="200"/>
+                <DataGridTextColumn Header="ประกอบกิจการ" Binding="{Binding ประกอบกิจการ}" Width="180"/>
+                <DataGridTextColumn Header="ที่ตั้งโรงงาน" Binding="{Binding ที่ตั้งโรงงาน}" Width="220"/>
+                <DataGridTextColumn Header="ชื่อผู้รับใบอนุญาต" Binding="{Binding ชื่อผู้รับใบอนุญาต}" Width="180"/>
 
                 <DataGridTextColumn Header="วันที่ยื่นขอ" Binding="{Binding วันที่ยื่นขอ, StringFormat=\{0:dd/MM/yyyy\}}" Width="110"/>
-                <DataGridTextColumn Header="ปี" Binding="{Binding ปี}" Width="60"/>
-                <DataGridTextColumn Header="ประเภทคำขอ" Binding="{Binding ประเภทคำขอ}" Width="150"/>
-                <DataGridTextColumn Header="เลขที่คำขอ" Binding="{Binding เลขที่คำขอ}" Width="130"/>
-                <DataGridTextColumn Header="สถานะหลัก" Binding="{Binding สถานะคำขอหลัก}" Width="130"/>
+                <DataGridTextColumn Header="ปี" Binding="{Binding ปี}" Width="70"/>
+                <DataGridTextColumn Header="ประเภทคำขอ" Binding="{Binding ประเภทคำขอ}" Width="160"/>
+                <DataGridTextColumn Header="เลขที่คำขอ" Binding="{Binding เลขที่คำขอ}" Width="140"/>
+                <DataGridTextColumn Header="สถานะหลัก" Binding="{Binding สถานะคำขอหลัก}" Width="140"/>
 
-                <DataGridTextColumn Header="ลำดับย่อย" Binding="{Binding ลำดับย่อย}" Width="80"/>
-                <DataGridTextColumn Header="รหัสประเภทหรือชนิดของเสีย" Binding="{Binding รหัสประเภทหรือชนิดของเสีย}" Width="160"/>
-                <DataGridTextColumn Header="ชื่อของเสีย" Binding="{Binding ชื่อของเสีย}" Width="180"/>
-                <DataGridTextColumn Header="ปริมาณ (ตัน)" Binding="{Binding [ปริมาณ(ตัน)]}" Width="100"/>
-                <DataGridTextColumn Header="รหัสการจัดการ" Binding="{Binding รหัสการจัดการ}" Width="110"/>
-                <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้รับบริการ" Binding="{Binding เลขทะเบียนโรงงานผู้รับบริการ}" Width="180"/>
+                <DataGridTextColumn Header="ลำดับย่อย" Binding="{Binding ลำดับย่อย}" Width="90"/>
+                <DataGridTextColumn Header="รหัสประเภทหรือชนิดของเสีย" Binding="{Binding รหัสประเภทหรือชนิดของเสีย}" Width="180"/>
+                <DataGridTextColumn Header="ชื่อของเสีย" Binding="{Binding ชื่อของเสีย}" Width="200"/>
+                <DataGridTextColumn Header="ปริมาณ (ตัน)" Binding="{Binding [ปริมาณ(ตัน)]}" Width="110"/>
+                <DataGridTextColumn Header="รหัสการจัดการ" Binding="{Binding รหัสการจัดการ}" Width="120"/>
+                <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้รับบริการ" Binding="{Binding เลขทะเบียนโรงงานผู้รับบริการ}" Width="190"/>
             </DataGrid.Columns>
         </DataGrid>
 

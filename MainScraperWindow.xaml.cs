@@ -371,7 +371,7 @@ namespace BWG_WasteScraper
                                                  
                                                     // 🎯 2. ใช้ลอจิก IF NOT EXISTS คลุมฝั่งตาราง DT ด้วยเช่นกัน เพื่อไม่ให้บันทึกข้อมูลย่อยซ้ำซ้อนซ่อนเงื่อน
                                                     StringBuilder dtSqlBuilder = new StringBuilder();
-                                                    dtSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperDT WHERE RequestNumber = '{safeReqNum}' AND SequenceNumber = {sequenceCounter})");
+                                                    dtSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperDT WHERE RequestNumber = '{safeReqNum}' AND SequenceNumber = {sequenceCounter} AND  OperatorCode= {operatorCode} )");
                                                     dtSqlBuilder.AppendLine("BEGIN");
                                                     dtSqlBuilder.AppendLine("    INSERT INTO tbWasteScraperDT (RequestNumber, SequenceNumber, OperatorCode, OperatorName, [Type], QuantityMetricTons, ManagementCode, AcknowledgementDeadline, [Status], [Year], FactoryRegistrationNumber, FactoryName, BusinessOperation, [Address], LicenseeName, TaxID, Phone, Fax, ItemNumber, WasteTypeCode, HazStatus, Properties, WasteName, WasteGenerationProcess, EvaluationReason)");
                                                     dtSqlBuilder.AppendLine($"    VALUES ('{safeReqNum}', {sequenceCounter}, '{operatorCode.Replace("'", "''")}', N'{operatorName.Replace("'", "''")}', N'{typeValue.Replace("'", "''")}', {qtyDecimal}, '{managementCode.Replace("'", "''")}', {formattedDeadlineSql}, '{statusDt.Replace("'", "''")}', {LindedYear}, '{facRegNo.Replace("'", "''")}', N'{facName.Replace("'", "''")}', N'{bizOp.Replace("'", "''")}', N'{addr.Replace("'", "''")}', N'{licensee.Replace("'", "''")}', '{tax.Replace("'", "''")}', '{phone.Replace("'", "''")}', '{fax.Replace("'", "''")}', {LinkedItemNo}, '{wasteCode.Replace("'", "''")}', '{haz.Replace("'", "''")}', N'{prop.Replace("'", "''")}', N'{wasteName.Replace("'", "''")}', N'{process.Replace("'", "''")}', N'{reason.Replace("'", "''")}');");
@@ -470,6 +470,7 @@ namespace BWG_WasteScraper
         private  void BtnExportExcel_Click(object sender, RoutedEventArgs e)
         {
             Reportwindown report = new Reportwindown();
+            report.WindowState = WindowState.Maximized;
             report.Show();     
         }
 
