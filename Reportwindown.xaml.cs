@@ -99,6 +99,7 @@ namespace BWG_WasteScraper
 	                    d.OperatorCode AS เลขทะเบียนโรงงานผู้รับบริการ
                         FROM tbWasteScraperHD h
                         LEFT JOIN tbWasteScraperDT d ON h.RequestNumber = d.RequestNumber
+                        AND h.CompanyCode =  d.OperatorCode
                         WHERE h.IsCheck is not null"); // เลือกดึงเฉพาะตัวที่เรากวาดประวัติสมบูรณ์แล้ว
 
                     // 2. แตกแขนงเงื่อนไข Dynamic Filter (ยึดตามข้อมูลหน้าแรก)
@@ -124,8 +125,7 @@ namespace BWG_WasteScraper
                     }
 
                     // จัดเรียงลำดับให้สวยงามตามคิวหน้าระบบเว็บ
-                    sqlBuilder.Append(" ORDER BY h.SubmissionDate ASC, d.SequenceNumber ASC ");
-
+                    sqlBuilder.Append(" ORDER BY SubmissionDate,h.RequestNumber,OperatorCode,SequenceNumber ");
                     // 3. ยิงข้อมูลฝังรากลงใน DataTable ตัวแปรส่วนกลาง
                     _dtCurrentReport = new DataTable();
                     using (SqlConnection conn = new SqlConnection(_connString))
