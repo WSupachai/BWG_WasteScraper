@@ -5,6 +5,8 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Data;
 
 namespace BWG_WasteScraper
 {
@@ -16,6 +18,7 @@ namespace BWG_WasteScraper
         public MainScraperWindow(string appUsername)
         {
             InitializeComponent();
+            LoadCompanyComboBox();
             TxtWelcome.Text = $"ผู้ใช้งานแอป: {appUsername}";
         }
 
@@ -40,6 +43,8 @@ namespace BWG_WasteScraper
 
         private async void BtnStart_Click(object sender, RoutedEventArgs e)
         {
+            DateTime? localDateFrom = DpFrom.SelectedDate;
+            DateTime? localDateTo = DpTo.SelectedDate;
             string webUser = TxtWebUsername.Text.Trim();
             string webPass = TxtWebPassword.Password.Trim();
             string selectedCompanyId = "";
@@ -47,11 +52,8 @@ namespace BWG_WasteScraper
 
             Dispatcher.Invoke(() =>
             {
-                if (CboCompany.SelectedItem is ComboBoxItem selectedItem)
-                {
-                    selectedCompanyId = selectedItem.Tag?.ToString() ?? "";
-                    selectedCompanyName = selectedItem.Content?.ToString() ?? "";
-                }
+                selectedCompanyId = CboCompany.SelectedValue?.ToString() ?? "";
+                selectedCompanyName = CboCompany.Text ?? "";
             });
 
             if (string.IsNullOrWhiteSpace(webUser) || string.IsNullOrWhiteSpace(webPass) || string.IsNullOrWhiteSpace(selectedCompanyId))
@@ -77,7 +79,7 @@ namespace BWG_WasteScraper
 
                     UpdateLog("🚀 เริ่มต้นระบบ Playwright แบบซ่อนหน้าต่าง...");
                     using var playwright = await Playwright.CreateAsync();
-                    await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });
+                    await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
                     var page = await browser.NewPageAsync();
 
                     UpdateLog($"🌐 นำทางไปยังหน้าเว็บไซต์: {_targetUrl}");
@@ -85,9 +87,24 @@ namespace BWG_WasteScraper
 
                     await page.Locator("#username").FillAsync(webUser);
                     await page.Locator("#password").FillAsync(webPass);
+                    // 🎯 ไม้ตาย: สั่งลบหน้าต่างป๊อปอัพกวนใจออกจากหน้าจอไปเลยครับพี่ยัง!
+                    await page.EvaluateAsync(@"() => {
+                                    const modal = document.getElementById('HelpModal');
+                                    if (modal) { modal.remove(); }
+    
+                                    // แถม: ลบฟิล์มดำ ๆ ที่ชอบบังหน้าจอออกด้วย (ถ้ามี)
+                                    const backdrop = document.querySelector('.modal-backdrop');
+                                    if (backdrop) { backdrop.remove(); }
+    
+                                    // ปลดล็อกตัวสกรอลล์ของหน้าเว็บให้กลับมาเลื่อนได้ปกติ
+                                    document.body.classList.remove('modal-open');
+                                    document.body.style.overflow = '';
+                                }");
+
+                    // จากนั้นค่อยสั่งให้บอทวิ่งไปกรอกพาสเวิร์ดและคลิกปุ่มล็อกอินตามปกติครับพี่
                     await page.Locator("#bttLogin").ClickAsync();
 
-                    UpdateLog("⏳ รอระบบตรวจสอบรหัสผ่านหน้าเว็บ...");
+                    UpdateLog("⏳ รอระบบตรวจสอบรหัสผ่านหน้าเว็บ...");                
                     await page.Locator("button:has-text('Log Out')").WaitForAsync(new() { Timeout = 60000 });
                     UpdateLog("✅ ล็อกอินสำเร็จ!");
 
@@ -126,6 +143,8 @@ namespace BWG_WasteScraper
                         int rowCount = await allMainRows.CountAsync();
                         UpdateLog($"📡 เรดาร์พบข้อมูลในหน้าปัจจุบันทั้งหมด {rowCount} แถวหลัก เริ่มสกัดข้อมูล...");
 
+
+
                         // 🚀 ลูปหลัก (ตาราง HD)
                         for (int mainRowIdx = 0; mainRowIdx < rowCount; mainRowIdx++)
                         {
@@ -163,6 +182,62 @@ namespace BWG_WasteScraper
                             {
                                 formattedDateForSql = $"'{parsedDate:yyyy-MM-dd HH:mm:ss}'";
                             }
+
+                            if (!string.IsNullOrEmpty(rawSubmissionDate))
+                            {
+
+                                DateTime parsedWebDate;
+                                bool isParseSuccess = false;
+
+                                // 🎯 1. เคลียร์สิ่งสกปรกหัวท้ายทิ้งก่อน
+                                string cleanDateStr = rawSubmissionDate.Trim();
+
+                                // 🎯 2. ไม้ตายตัดปัญหาเศษเวลา: ในเมื่อมาเป็น "10/06/2026 09:51:07" (ยาวเกิน 10 หลักแน่ ๆ)
+                                // เราสั่งรูดเอาเฉพาะ 10 หลักแรกสุดจากซ้ายมือมาใช้งานเลยครับพี่ยัง นิ่งสนิทชัวร์!
+                                if (cleanDateStr.Length >= 10)
+                                {
+                                    cleanDateStr = cleanDateStr.Substring(0, 10); // จะโดนหั่นเหลือแค่ "10/06/2026" เปรี้ยงเดียวจบ!
+                                }
+
+                                // 🎯 3. ระบุฟอร์แมตหลัก dd/MM/yyyy คู่กับตัวแปรเดาก๊อกสอง
+                                string[] formatsToSupport = new[] { "dd/MM/yyyy", "d/M/yyyy" };
+
+                                if (DateTime.TryParseExact(cleanDateStr,
+                                                           formatsToSupport,
+                                                           System.Globalization.CultureInfo.InvariantCulture,
+                                                           System.Globalization.DateTimeStyles.None,
+                                                           out parsedWebDate))
+                                {
+                                    isParseSuccess = true;
+                                }
+                                else if (DateTime.TryParse(cleanDateStr,
+                                                           System.Globalization.CultureInfo.InvariantCulture,
+                                                           System.Globalization.DateTimeStyles.None,
+                                                           out parsedWebDate))
+                                {
+                                    isParseSuccess = true;
+                                }
+
+                                if (isParseSuccess)
+                                {
+                                    // 🎯 จุดสำคัญ: ในลูปนี้ ให้พี่สลับมาเช็กเงื่อนไขกับตัวแปร "localDateFrom" และ "localDateTo" 
+                                    // ที่เราดึงมาฝากไว้ตั้งแต่สเต็ปที่ 1 แทนครับ (ห้ามไปพิมพ์คำว่า DpFrom หรือ DpTo ข้างในนี้เด็ดขาด!)
+
+                                    if (localDateFrom.HasValue && parsedWebDate.Date < localDateFrom.Value.Date)
+                                    {
+                                        // เวลาสั่ง UpdateLog ถ้าด้านในมีการวิ่งไปแตะหน้าจอ อย่าลืมใช้ Dispatcher.Invoke นะครับพี่ยัง
+                                        Dispatcher.Invoke(() => UpdateLog($"⏭️ ข้ามข้อมูล {requestNumber} {rawSubmissionDate}  (เก่ากว่าวันที่กำหนด)"));
+                                        continue;
+                                    }
+
+                                    if (localDateTo.HasValue && parsedWebDate.Date > localDateTo.Value.Date)
+                                    {
+                                        Dispatcher.Invoke(() => UpdateLog($"⏭️ ข้ามข้อมูล {requestNumber} {rawSubmissionDate}  (ใหม่กว่าวันที่กำหนด)"));
+                                        continue;
+                                    }
+                                }
+                            }
+
 
                             // 🎯 1. ใช้ลอจิก IF NOT EXISTS ดักเช็กในระดับคำสั่ง SQL เพื่อไม่ให้มีการเก็บข้อมูลซ้ำถ้าเจอ RequestNumber เดิม
                             StringBuilder rowSqlBuilder = new StringBuilder();
@@ -524,10 +599,7 @@ namespace BWG_WasteScraper
             string selectedCompanyId = "";
             Dispatcher.Invoke(() =>
             {
-                if (CboCompany.SelectedItem is ComboBoxItem selectedItem)
-                {
-                    selectedCompanyId = selectedItem.Tag?.ToString() ?? "";
-                }
+                selectedCompanyId = CboCompany.SelectedValue?.ToString() ?? "";
             });
 
             if (string.IsNullOrWhiteSpace(selectedCompanyId))
@@ -623,6 +695,40 @@ namespace BWG_WasteScraper
 
             });
 
+        }
+
+        private void LoadCompanyComboBox()
+        {        
+            string query = @" SELECT Company,TSDFRegisNo14 FROM v_TSDFCompany_Formatted "; 
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_connString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                        {
+                            DataTable dt = new DataTable();
+                            da.Fill(dt);
+
+                            // 🎯 ผูกดาต้าตารางเข้ากับ ComboBox หน้าจอ
+                            CboCompany.ItemsSource = dt.DefaultView;
+
+                            // เลือกให้ไฮไลต์ที่รายการแรกสุดโดยอัตโนมัติป้องกันค่าว่าง
+                            if (CboCompany.Items.Count > 0)
+                            {
+                                CboCompany.SelectedIndex = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"❌ โหลดข้อมูลบริษัทล้มเหลว: {ex.Message}", "ข้อผิดพลาด", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
     }

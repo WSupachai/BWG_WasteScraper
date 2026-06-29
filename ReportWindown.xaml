@@ -47,6 +47,7 @@
                     <ComboBoxItem Content="บริษัท BWG จำกัด (20190300225401)" Tag="20190300225401"/>
                     <ComboBoxItem Content="บริษัท BWG จำกัด (10190000825494)" Tag="10190000825494"/>
                     <ComboBoxItem Content="บริษัท BWG จำกัด (82170100125618)" Tag="82170100125618"/>
+                    <ComboBoxItem Content="บริษัท BWC จำกัด (82170009625627)" Tag="82170009625627"/>
                 </ComboBox>
 
                 <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtReqNumber" Height="35" Margin="5,0,5,0" Background="#26262B" Foreground="White" BorderBrush="#3F3F46" VerticalContentAlignment="Center" Padding="5,0,0,0"/>

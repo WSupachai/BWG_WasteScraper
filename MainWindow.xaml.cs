@@ -66,7 +66,7 @@ namespace BWG_WasteScraper
             // จำลองลอจิก Select Case จากโค้ดเดิมของพี่
             appId = "26";
  
-            string version = "1.0.0"; 
+            string version = "1.0.3"; 
 
             // ใช้ระบบจัดการ Context ด้วยการเปิดท่อเชื่อม SQL Connection 
             using (SqlConnection conn = new SqlConnection(connString))

@@ -20,35 +20,72 @@
             <TextBlock Text="ระบบกวาดข้อมูลคำขออัตโนมัติ (เว็บกรมโรงงาน)" FontSize="13" Foreground="#8E8E93" Margin="0,5,0,0"/>
             <Separator Background="#2A2A30" Margin="0,12,0,0"/>
         </StackPanel>
-        
+
         <Border Grid.Row="1" Background="#18181C" BorderBrush="#2A2A30" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,15">
             <StackPanel>
-                <TextBlock Text="🔑 TARGET WEBSITE AUTHENTICATION &amp; COMPANY SELECTION" FontSize="11" FontWeight="Bold" Foreground="#00FF99" Margin="0,0,0,12"/>
+                <TextBlock Text="🔑 TARGET WEBSITE AUTHENTICATION &amp; SCRAPER FILTERS" FontSize="11" FontWeight="Bold" Foreground="#00FF99" Margin="0,0,0,12"/>
 
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.5*"/>
                         <ColumnDefinition Width="1.5*"/>
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
                         <TextBlock Text="Web Username" FontSize="11" Foreground="#8E8E93" Margin="0,0,0,5"/>
                         <TextBox x:Name="TxtWebUsername" Background="#2A2A30" Foreground="#E5E5EA" BorderBrush="#3A3A40" Height="32" VerticalContentAlignment="Center" Padding="5,0" CaretBrush="#00FF99"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
                         <TextBlock Text="Web Password" FontSize="11" Foreground="#8E8E93" Margin="0,0,0,5"/>
                         <PasswordBox x:Name="TxtWebPassword" Background="#2A2A30" Foreground="#E5E5EA" BorderBrush="#3A3A40" Height="32" VerticalContentAlignment="Center" Padding="5,0" CaretBrush="#00FF99"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Select Target Company (เลือกบริษัทเป้าหมาย)" FontSize="11" Foreground="#00FF99" Margin="0,0,0,5" FontWeight="SemiBold"/>
-                        <ComboBox x:Name="CboCompany" Background="#2A2A30" Foreground="Black" BorderBrush="#3A3A40" Height="32" VerticalContentAlignment="Center" SelectedIndex="0">
-                            <ComboBoxItem Content="บริษัท BWG (รหัส: 20190300225401)" Tag="20190300225401"/>
-                            <ComboBoxItem Content="บริษัท BWG (รหัส: 10190000825494)" Tag="10190000825494"/>
-                            <ComboBoxItem Content="บริษัท BWG (รหัส: 82170100125618)" Tag="82170100125618"/>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,12">
+                        <TextBlock Text="Select Target Company (เลือกบริษัทเป้าหมาย)" FontSize="11" Foreground="#8E8E93" Margin="0,0,0,5" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="CboCompany" 
+              Background="#2A2A30" 
+              Foreground="Black" 
+              BorderBrush="#3A3A40" 
+              Height="32" 
+              VerticalContentAlignment="Center"
+              DisplayMemberPath="Company"       SelectedValuePath="TSDFRegisNo14">
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="ComboBoxItem">
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="Background" Value="#2A2A30"/>
+                                    <Setter Property="Padding" Value="8,5,8,5"/>
+                                    <Setter Property="FontSize" Value="12"/>
+
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3F3F46"/>
+                                            <Setter Property="Foreground" Value="Black"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+
                         </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="📅 ตั้งแต่วันที่ยื่นขอ (Date From)" FontSize="11" Foreground="#8E8E93" Margin="0,0,0,5"/>
+                        <DatePicker x:Name="DpFrom" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="📅 ถึงวันที่ยื่นขอ (Date To)" FontSize="11" Foreground="#8E8E93" Margin="0,0,0,5"/>
+                        <DatePicker x:Name="DpTo" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom">
+                        <TextBlock Text="💡 หมายเหตุ: บอทจะข้ามแถวที่ไม่อยู่ในช่วงวันที่ระบุ" FontSize="10" Foreground="#88888C" FontStyle="Italic" VerticalAlignment="Center" Margin="5,0,0,8"/>
                     </StackPanel>
                 </Grid>
             </StackPanel>
