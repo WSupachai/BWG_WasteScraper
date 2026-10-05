@@ -10,7 +10,7 @@ using ClosedXML.Excel;          // 🟢 เรียกใช้งาน Closed
 
 namespace BWG_WasteScraper
 {
-    public partial class Reportwindown : Window
+    public partial class ReportWastePermit : Window
     {
         // ⚠️ รบกวนพี่ยังปรับ Connection String ให้ตรงกับพิกัดเซิร์ฟเวอร์จริงของพี่นะครับ
         string? _connString = AppSettings.ConnectionString;
@@ -18,14 +18,11 @@ namespace BWG_WasteScraper
         // ถังพักข้อมูลดาต้าเบสชั่วคราว เพื่อส่งต่อให้ปุ่ม Export ทำงานได้ทันที
         private DataTable? _dtCurrentReport = null;
 
-        public Reportwindown()
+        public ReportWastePermit()
         {
             InitializeComponent();
         }
 
-        // ====================================================================
-        // 🔍 ปุ่มกดค้นหาข้อมูลตามตัวกรองหลัก (BtnSearch_Click)
-        // ====================================================================
         private async void BtnSearch_Click(object sender, RoutedEventArgs e)
         {
             BtnSearch.IsEnabled = false;
@@ -81,31 +78,30 @@ namespace BWG_WasteScraper
                     StringBuilder sqlBuilder = new StringBuilder();
                     sqlBuilder.Append(@"
                         SELECT
-                        d.FactoryRegistrationNumber AS เลขทะเบียนโรงงานผู้ก่อกำเนิด, 
-                        d.FactoryName AS ชื่อโรงงาน,
-                        d.BusinessOperation AS ประกอบกิจการ,
-                        d.[Address] AS ที่ตั้งโรงงาน,
-                        d.LicenseeName AS ชื่อผู้รับใบอนุญาต,
-                        h.SubmissionDate AS วันที่ยื่นขอ,
-                        d.[Year] AS ปี,
-                        h.RequestType AS ประเภทคำขอ,
-                        h.RequestNumber AS เลขที่คำขอ,
-                        h.[Status] AS สถานะคำขอหลัก,
-                        d.SequenceNumber AS ลำดับย่อย,
-                        d.WasteTypeCode AS รหัสประเภทหรือชนิดของเสีย,
-                        d.WasteName AS ชื่อของเสีย,
-                        d.QuantityMetricTons AS [ปริมาณ(ตัน)],    
-                        d.ManagementCode AS รหัสการจัดการ,
-	                    d.OperatorCode AS เลขทะเบียนโรงงานผู้รับบริการ
-                        FROM tbWasteScraperHD h
-                        LEFT JOIN tbWasteScraperDT d ON h.RequestNumber = d.RequestNumber
-                        AND h.CompanyCode =  d.OperatorCode
-                        WHERE h.IsCheck is not null"); // เลือกดึงเฉพาะตัวที่เรากวาดประวัติสมบูรณ์แล้ว
+                            h.FactoryRegNo          AS [เลขทะเบียนโรงงานผู้ก่อกำเนิด],
+                            h.FactoryName           AS [ชื่อโรงงาน],
+                            h.SubmittedAt           AS [วันที่ยื่นขอ],
+                            h.RequestYear           AS [ปี],
+                            h.RequestType           AS [ประเภทคำขอ],
+                            h.RequestNumber         AS [เลขที่คำขอ],
+                            h.[Status]              AS [สถานะคำขอหลัก],
+                            h.DeadlineAt            AS [กำหนดตอบรับ],
+                            d.ItemNo                AS [ลำดับย่อย],
+                            d.WasteCode             AS [รหัสประเภทหรือชนิดของเสีย],
+                            d.WasteName             AS [ชื่อของเสีย],
+                            d.QuantityTon           AS [ปริมาณ(ตัน)],
+                            d.Hazard                AS [ความเป็นอันตราย],
+                            d.ResponseResult        AS [ผลการตอบรับ],
+                            h.OperatorFactoryRegNo  AS [เลขทะเบียนโรงงานผู้รับบริการ],
+                            h.OperatorFactoryName   AS [ชื่อผู้รับดำเนินการ]
+                        FROM dbo.Acceptance_HD h
+                        LEFT JOIN dbo.Acceptance_DT d ON d.AcceptanceId = h.AcceptanceId
+                        WHERE 1=1 ");
 
                     // 2. แตกแขนงเงื่อนไข Dynamic Filter (ยึดตามข้อมูลหน้าแรก)
                     if (!string.IsNullOrEmpty(selectedCompanyId))
                     {
-                        sqlBuilder.Append($" AND  h.CompanyCode LIKE '{selectedCompanyId}%' ");
+                        sqlBuilder.Append($" AND h.OperatorFactoryRegNo  LIKE '{selectedCompanyId}%' ");
                     }
                     if (!string.IsNullOrEmpty(requestNumberInput))
                     {
@@ -113,19 +109,19 @@ namespace BWG_WasteScraper
                     }
                     if (!string.IsNullOrEmpty(selectedStatus))
                     {
-                        sqlBuilder.Append($" AND  h.[RequestType] = N'{selectedStatus}' ");
+                        sqlBuilder.Append($" AND  h.[Status] = N'{selectedStatus}' ");
                     }
                     if (dateFrom.HasValue)
                     {
-                        sqlBuilder.Append($" AND  h.SubmissionDate >= '{sqlDateFrom}' ");
+                        sqlBuilder.Append($" AND  h.SubmittedAt >= '{sqlDateFrom}' ");
                     }
                     if (dateTo.HasValue)
                     {
-                        sqlBuilder.Append($" AND  h.SubmissionDate <= '{sqlDateTo}' ");
+                        sqlBuilder.Append($" AND  h.SubmittedAt <= '{sqlDateTo}' ");  //DeadlineAt
                     }
 
                     // จัดเรียงลำดับให้สวยงามตามคิวหน้าระบบเว็บ
-                    sqlBuilder.Append(" ORDER BY SubmissionDate,h.RequestNumber,OperatorCode,SequenceNumber ");
+                    sqlBuilder.Append(" ORDER BY h.SubmittedAt, h.RequestNumber, h.OperatorFactoryRegNo, d.ItemNo");
                     // 3. ยิงข้อมูลฝังรากลงใน DataTable ตัวแปรส่วนกลาง
                     _dtCurrentReport = new DataTable();
                     using (SqlConnection conn = new SqlConnection(_connString))
@@ -158,9 +154,6 @@ namespace BWG_WasteScraper
             });
         }
 
-        // ====================================================================
-        // 📊 ปุ่มสั่งแปลงและส่งออกรายงานเป็นไฟล์ Excel (.xlsx) แท้
-        // ====================================================================
         private async void BtnExportExcel_Click(object sender, RoutedEventArgs e)
         {
             // เช็กระบบความปลอดภัย ป้องกัน User มือกดปุ่มรายงานทั้ง ๆ ที่ยังไม่กดค้นหาข้อมูล
@@ -204,7 +197,7 @@ namespace BWG_WasteScraper
 
                     Dispatcher.Invoke(() =>
                     {
-                        MessageBox.Show($"📊 ส่งออกรายงาน Excel สำเร็จเรียบร้อยครับพี่ยัง!\nไฟล์ตั้งตระหง่านอยู่บน Desktop ชื่อไฟล์:\n{fileName}", "ระบบทำงานสำเร็จ", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"📊 ส่งออกรายงาน Excel สำเร็จเรียบร้อยครับพี่ยัง!\nไฟล์อยู่บน Desktop ชื่อไฟล์:\n{fileName}", "ระบบทำงานสำเร็จ", MessageBoxButton.OK, MessageBoxImage.Information);
                         TxtReportStatus.Text = $"✅ ส่งออกรายงานสำเร็จ! ชื่อไฟล์: {fileName}";
                     });
                 }
@@ -218,7 +211,5 @@ namespace BWG_WasteScraper
                 }
             });
         }
-
-
     }
 }
