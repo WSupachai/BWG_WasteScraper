@@ -1,12 +1,15 @@
 ﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.Data.SqlClient;
 using Microsoft.Playwright;
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Data;
 
 namespace BWG_WasteScraper
 {
@@ -79,7 +82,7 @@ namespace BWG_WasteScraper
 
                     UpdateLog("🚀 เริ่มต้นระบบ Playwright แบบซ่อนหน้าต่าง...");
                     using var playwright = await Playwright.CreateAsync();
-                    await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
+                    await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });
                     var page = await browser.NewPageAsync();
 
                     UpdateLog($"🌐 นำทางไปยังหน้าเว็บไซต์: {_targetUrl}");
@@ -104,7 +107,7 @@ namespace BWG_WasteScraper
                     // จากนั้นค่อยสั่งให้บอทวิ่งไปกรอกพาสเวิร์ดและคลิกปุ่มล็อกอินตามปกติครับพี่
                     await page.Locator("#bttLogin").ClickAsync();
 
-                    UpdateLog("⏳ รอระบบตรวจสอบรหัสผ่านหน้าเว็บ...");                
+                    UpdateLog("⏳ รอระบบตรวจสอบรหัสผ่านหน้าเว็บ...");
                     await page.Locator("button:has-text('Log Out')").WaitForAsync(new() { Timeout = 60000 });
                     UpdateLog("✅ ล็อกอินสำเร็จ!");
 
@@ -113,7 +116,7 @@ namespace BWG_WasteScraper
                     await targetRow.Locator("button:has-text('ดำเนินการ')").ClickAsync();
 
                     await page.Locator("a:has-text('1. ยืนยันความยินยอมรับดำเนินการ สิ่งปฏิกูลหรือวัสดุที่ไม่ใช้แล้ว')").ClickAsync();
-                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 60000 });
 
                     var lengthSelect = page.Locator("select[name='waste_pro_table1_length']");
                     await lengthSelect.SelectOptionAsync(new[] { "100" });
@@ -341,148 +344,318 @@ namespace BWG_WasteScraper
                                                 string rawDeadline = (await innerTds.Nth(6).InnerTextAsync()).Trim();
                                                 string statusDt = (await innerTds.Nth(7).InnerTextAsync()).Trim();
 
+                                                //int buttonIndex = currentButtonIndex;
+                                                //var inspectBtn = targetModal.Locator($"button#btt_rd{buttonIndex}").First;
+
+                                                ILocator inspectBtn;
                                                 int buttonIndex = currentButtonIndex;
-                                                var inspectBtn = targetModal.Locator($"button#btt_rd{buttonIndex}").First;
-
-                                                if (await inspectBtn.IsVisibleAsync())
+                                                var duplicateButtons = targetModal.Locator($"button#btt_rd{buttonIndex}");
+                                                int duplicateCount = await duplicateButtons.CountAsync();
+                                                if (duplicateCount > 1)
                                                 {
-                                                    await inspectBtn.ScrollIntoViewIfNeededAsync();
-                                                    await inspectBtn.ClickAsync(new() { Force = true });
-                                                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-                                                    // เจาะทะลวงเข้าสู่หน้าต่าง Modal ชั้นลึกสุด
-                                                    var detailModal = page.Locator(".modal-content:visible").Last;
-                                                    var firstInputInModal = detailModal.Locator("input").First;
-                                                    await firstInputInModal.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 60000 });
-
-                                                    // ====================================================================
-                                                    // ✨ หน้าต่างลึกสุดกางเต็มจอสำเร็จ! เริ่มสกัดข้อมูลรายกล่องคู่คอลัมน์...
-                                                    // ====================================================================
-                                                    var detailHeadersList = new List<string>();
-                                                    var detailValuesList = new List<string>();
-
-                                                    // 🎯 ประกาศตัวแปรรับค่าฟิลด์ต่าง ๆ เตรียมไว้ (คงเดิม)
-                                                    string yearVal = "0"; string facRegNo = ""; string facName = ""; string bizOp = "";
-                                                    string addr = ""; string licensee = ""; string process = ""; string tax = ""; string phone = ""; string fax = "";
-                                                    string itemNo = "0"; string wasteCode = ""; string haz = ""; string reason = "";
-                                                    // 🎯 1. เพิ่มตัวแปรพระเอกคู่ใหม่ สำหรับดักจับกล่องฝาแฝด
-                                                    string prop = "";     // สำหรับเก็บค่ากล่อง "ชื่อสิ่งปฏิกูลฯ" ตัวแรก (Properties)
-                                                    string wasteName = ""; // สำหรับเก็บค่ากล่อง "ชื่อสิ่งปฏิกูลฯ" ตัวที่สอง (WasteName)
-                                                    int twinNameCounter = 0; // ตัวนับว่าเจอคำว่า "ชื่อสิ่งปฏิกูล" กี่ครั้งแล้วในหน้านี้
-                                                    var labels = await detailModal.Locator("label").AllAsync();
-                                                    foreach (var lbl in labels)
+                                                    inspectBtn = targetModal.Locator($"button#btt_rd{buttonIndex}").Nth(j);
+                                                    //inspectBtn = duplicateButtons.Nth(K);
+                                                    if (await inspectBtn.IsVisibleAsync())
                                                     {
-                                                        string headerText = await lbl.InnerTextAsync();
-                                                        headerText = headerText.Replace("\n", " ").Replace("\r", "").Trim();
-                                                        if (string.IsNullOrWhiteSpace(headerText) || headerText.Contains("เอกสารประกอบ")) continue;
+                                                        await inspectBtn.ScrollIntoViewIfNeededAsync();
+                                                        await inspectBtn.ClickAsync(new() { Force = true });
+                                                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                                                        var input = lbl.Locator("xpath=..//input | ..//textarea | ..//select").First;
-                                                        if (await input.CountAsync() > 0)
+                                                        // เจาะทะลวงเข้าสู่หน้าต่าง Modal ชั้นลึกสุด
+                                                        var detailModal = page.Locator(".modal-content:visible").Last;
+                                                        var firstInputInModal = detailModal.Locator("input").First;
+                                                        await firstInputInModal.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 60000 });
+
+                                                        // ====================================================================
+                                                        // ✨ หน้าต่างลึกสุดกางเต็มจอสำเร็จ! เริ่มสกัดข้อมูลรายกล่องคู่คอลัมน์...
+                                                        // ====================================================================
+                                                        var detailHeadersList = new List<string>();
+                                                        var detailValuesList = new List<string>();
+
+                                                        // 🎯 ประกาศตัวแปรรับค่าฟิลด์ต่าง ๆ เตรียมไว้ (คงเดิม)
+                                                        string yearVal = "0"; string facRegNo = ""; string facName = ""; string bizOp = "";
+                                                        string addr = ""; string licensee = ""; string process = ""; string tax = ""; string phone = ""; string fax = "";
+                                                        string itemNo = "0"; string wasteCode = ""; string haz = ""; string reason = "";
+                                                        // 🎯 1. เพิ่มตัวแปรพระเอกคู่ใหม่ สำหรับดักจับกล่องฝาแฝด
+                                                        string prop = "";     // สำหรับเก็บค่ากล่อง "ชื่อสิ่งปฏิกูลฯ" ตัวแรก (Properties)
+                                                        string wasteName = ""; // สำหรับเก็บค่ากล่อง "ชื่อสิ่งปฏิกูลฯ" ตัวที่สอง (WasteName)
+                                                        int twinNameCounter = 0; // ตัวนับว่าเจอคำว่า "ชื่อสิ่งปฏิกูล" กี่ครั้งแล้วในหน้านี้
+                                                        var labels = await detailModal.Locator("label").AllAsync();
+                                                        foreach (var lbl in labels)
                                                         {
-                                                            var isInTable = input.Locator("xpath=ancestor::table[@id='ProduceTable']");
-                                                            if (await isInTable.CountAsync() > 0) continue;
+                                                            string headerText = await lbl.InnerTextAsync();
+                                                            headerText = headerText.Replace("\n", " ").Replace("\r", "").Trim();
+                                                            if (string.IsNullOrWhiteSpace(headerText) || headerText.Contains("เอกสารประกอบ")) continue;
 
-                                                            string val = await input.InputValueAsync();
-                                                            val = val.Replace("\n", " ").Replace("\r", "").Trim();
-
-                                                            // 📋 บันทึกเข้าไฟล์ CSV ของพี่ตามปกติเป๊ะ หัวข้อและข้อมูล CSV อยู่ครบ 100% ไม่พังแน่นอน
-                                                            detailHeadersList.Add($"\"{headerText}\"");
-                                                            detailValuesList.Add($"\"{val}\"");
-
-                                                            // ====================================================================
-                                                            // 🎯 2. สกัดค่าลงฐานข้อมูลรายตัว โดยใช้ระบบตรวจสอบคีย์เวิร์ด + นับจำนวนกล่องแฝด
-                                                            // ====================================================================
-
-                                                            if (headerText.Contains("ชื่อสิ่งปฏิกูล"))
+                                                            var input = lbl.Locator("xpath=..//input | ..//textarea | ..//select").First;
+                                                            if (await input.CountAsync() > 0)
                                                             {
-                                                                twinNameCounter++; // นับคิวทันที (กล่องแรกได้ 1, กล่องสองได้ 2)
-                                                                if (twinNameCounter == 1)
+                                                                var isInTable = input.Locator("xpath=ancestor::table[@id='ProduceTable']");
+                                                                if (await isInTable.CountAsync() > 0) continue;
+
+                                                                string val = await input.InputValueAsync();
+                                                                val = val.Replace("\n", " ").Replace("\r", "").Trim();
+
+                                                                // 📋 บันทึกเข้าไฟล์ CSV ของพี่ตามปกติเป๊ะ หัวข้อและข้อมูล CSV อยู่ครบ 100% ไม่พังแน่นอน
+                                                                detailHeadersList.Add($"\"{headerText}\"");
+                                                                detailValuesList.Add($"\"{val}\"");
+
+                                                                // ====================================================================
+                                                                // 🎯 2. สกัดค่าลงฐานข้อมูลรายตัว โดยใช้ระบบตรวจสอบคีย์เวิร์ด + นับจำนวนกล่องแฝด
+                                                                // ====================================================================
+
+                                                                if (headerText.Contains("ชื่อสิ่งปฏิกูล"))
                                                                 {
-                                                                    prop = val; // คิวแรก (ตัวบน) คือ คุณสมบัติ (Properties)
+                                                                    twinNameCounter++; // นับคิวทันที (กล่องแรกได้ 1, กล่องสองได้ 2)
+                                                                    if (twinNameCounter == 1)
+                                                                    {
+                                                                        prop = val; // คิวแรก (ตัวบน) คือ คุณสมบัติ (Properties)
+                                                                    }
+                                                                    else if (twinNameCounter == 2)
+                                                                    {
+                                                                        wasteName = val; // คิวสอง (ตัวล่าง) คือ WasteName
+                                                                    }
                                                                 }
-                                                                else if (twinNameCounter == 2)
+                                                                else // กล่องอื่น ๆ ที่ชื่อไม่ซ้ำ ใช้สแกนหาคำคำใกล้เคียงตามปกติได้เลยครับพี่
                                                                 {
-                                                                    wasteName = val; // คิวสอง (ตัวล่าง) คือ WasteName
+                                                                    if (headerText.Contains("ชื่อผู้รับใบอนูญาต")) licensee = val;
+                                                                    if (headerText.Contains("รายละเอียดของกิจกรรมที่ก่อให้เกิดของเสีย")) process = val;
+                                                                    if (headerText.Contains("ปี")) yearVal = val;
+                                                                    if (headerText.Contains("ทะเบียนโรงงาน")) facRegNo = val;
+                                                                    if (headerText.Contains("ชื่อโรงงาน")) facName = val;
+                                                                    if (headerText.Contains("ประกอบกิจการ")) bizOp = val;
+                                                                    if (headerText.Contains("ที่ตั้ง")) addr = val;
+                                                                    if (headerText.Contains("ผู้เสียภาษี")) tax = val;
+                                                                    if (headerText.Contains("โทรศัพท์")) phone = val;
+                                                                    if (headerText.Contains("โทรสาร")) fax = val;
+                                                                    if (headerText.Contains("รายการที่")) itemNo = val;
+                                                                    if (headerText.Contains("รหัสประเภท")) wasteCode = val;
+                                                                    if (headerText.Contains("HAZ")) haz = val;
+                                                                    if (headerText.Contains("เหตุผล")) reason = val;
                                                                 }
-                                                            }
-                                                            else // กล่องอื่น ๆ ที่ชื่อไม่ซ้ำ ใช้สแกนหาคำคำใกล้เคียงตามปกติได้เลยครับพี่
-                                                            {
-                                                                if (headerText.Contains("ชื่อผู้รับใบอนูญาต")) licensee = val;
-                                                                if (headerText.Contains("รายละเอียดของกิจกรรมที่ก่อให้เกิดของเสีย")) process = val;
-                                                                if (headerText.Contains("ปี")) yearVal = val;
-                                                                if (headerText.Contains("ทะเบียนโรงงาน")) facRegNo = val;
-                                                                if (headerText.Contains("ชื่อโรงงาน")) facName = val;
-                                                                if (headerText.Contains("ประกอบกิจการ")) bizOp = val;
-                                                                if (headerText.Contains("ที่ตั้ง")) addr = val;
-                                                                if (headerText.Contains("ผู้เสียภาษี")) tax = val;
-                                                                if (headerText.Contains("โทรศัพท์")) phone = val;
-                                                                if (headerText.Contains("โทรสาร")) fax = val;
-                                                                if (headerText.Contains("รายการที่")) itemNo = val;
-                                                                if (headerText.Contains("รหัสประเภท")) wasteCode = val;
-                                                                if (headerText.Contains("HAZ")) haz = val;
-                                                                if (headerText.Contains("เหตุผล")) reason = val;
                                                             }
                                                         }
+
+                                                        // 📋 [ของเดิมเป๊ะ] จัดการรวมความกว้างบันทึกสายสตริงลงไฟล์สำรอง CSV 
+                                                        string detailHeaderStr = string.Join(",", detailHeadersList);
+                                                        string detailDataStr = string.Join(",", detailValuesList);
+                                                        string completeHeader = "หัวหน้าแรก_" + mainHeaderStr + "," + mainHeaderStr + "," + innerHeaderStr + "," + detailHeaderStr;
+                                                        if (exportData.Count == 0) { exportData.Add(completeHeader); }
+                                                        exportData.Add(firstPageDataStr + "," + currentMainDataStr + "," + innerDataStr + "," + detailDataStr);
+
+                                                        // ====================================================================
+                                                        // 🎯 [เพิ่มใหม่ยิงตรงคอลัมน์] ดึงจากตารางกลาง + Dictionary ลงตาราง tbWasteScraperDT
+                                                        // ====================================================================
+                                                        try
+                                                        {
+
+                                                            // ปรับแต่งฟอร์แมตตัวเลขและวันที่ให้ปลอดภัยต่อโครงสร้าง MSSQL
+
+                                                            int.TryParse(yearVal, out int parsedYear);
+                                                            int.TryParse(itemNo, out int parsedItemNo);
+
+                                                            int LindedYear = 0; int.TryParse(yearVal, out LindedYear);
+                                                            int LinkedItemNo = 0; int.TryParse(itemNo, out LinkedItemNo);
+                                                            decimal.TryParse(rawQty.Replace(",", ""), out decimal qtyDecimal);
+
+                                                            string formattedDeadlineSql = "NULL";
+                                                            if (DateTime.TryParse(rawDeadline, out DateTime deadDate)) { formattedDeadlineSql = $"'{deadDate:yyyy-MM-dd HH:mm:ss}'"; }
+
+                                                            // 🎯 2. ใช้ลอจิก IF NOT EXISTS คลุมฝั่งตาราง DT ด้วยเช่นกัน เพื่อไม่ให้บันทึกข้อมูลย่อยซ้ำซ้อนซ่อนเงื่อน
+                                                            StringBuilder dtSqlBuilder = new StringBuilder();
+                                                            dtSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperDT WHERE RequestNumber = '{safeReqNum}' AND SequenceNumber = {sequenceCounter} AND  OperatorCode= {operatorCode} )");
+                                                            dtSqlBuilder.AppendLine("BEGIN");
+                                                            dtSqlBuilder.AppendLine("    INSERT INTO tbWasteScraperDT (RequestNumber, SequenceNumber, OperatorCode, OperatorName, [Type], QuantityMetricTons, ManagementCode, AcknowledgementDeadline, [Status], [Year], FactoryRegistrationNumber, FactoryName, BusinessOperation, [Address], LicenseeName, TaxID, Phone, Fax, ItemNumber, WasteTypeCode, HazStatus, Properties, WasteName, WasteGenerationProcess, EvaluationReason)");
+                                                            dtSqlBuilder.AppendLine($"    VALUES ('{safeReqNum}', {sequenceCounter}, '{operatorCode.Replace("'", "''")}', N'{operatorName.Replace("'", "''")}', N'{typeValue.Replace("'", "''")}', {qtyDecimal}, '{managementCode.Replace("'", "''")}', {formattedDeadlineSql}, '{statusDt.Replace("'", "''")}', {LindedYear}, '{facRegNo.Replace("'", "''")}', N'{facName.Replace("'", "''")}', N'{bizOp.Replace("'", "''")}', N'{addr.Replace("'", "''")}', N'{licensee.Replace("'", "''")}', '{tax.Replace("'", "''")}', '{phone.Replace("'", "''")}', '{fax.Replace("'", "''")}', {LinkedItemNo}, '{wasteCode.Replace("'", "''")}', '{haz.Replace("'", "''")}', N'{prop.Replace("'", "''")}', N'{wasteName.Replace("'", "''")}', N'{process.Replace("'", "''")}', N'{reason.Replace("'", "''")}');");
+                                                            dtSqlBuilder.AppendLine("END");
+                                                            sqlBuilder.Append(dtSqlBuilder.ToString());
+
+                                                            UpdateLog($"⚡ สะสมคำสั่ง SQL บันทึกข้อมูล DT แถวที่ {sequenceCounter} สำเร็จ");
+                                                            sequenceCounter++;
+                                                        }
+                                                        catch (Exception ex) { UpdateLog($"⚠️ ข้อผิดพลาดสกัดจัดฟิลด์ SQL DT: {ex.Message}"); }
+
+                                                        await RandomDelay(1000, 2000);
+
+                                                        // ลอจิกปิดหน้าต่างย่อยเพื่อคืนคิวกลับมา
+                                                        var closeBtn = detailModal.Locator("button[data-bs-dismiss='modal'].btn-secondary, button:has-text('ปิด')").First;
+                                                        if (await closeBtn.IsVisibleAsync()) { await closeBtn.ClickAsync(new() { Force = true }); }
+                                                        else { await detailModal.Locator("button.btn-close").First.ClickAsync(new() { Force = true }); }
+
+                                                        var backdrop = page.Locator(".modal-backdrop");
+                                                        int backdropCount = await backdrop.CountAsync();
+                                                        for (int b = 0; b < backdropCount; b++) { try { await backdrop.Nth(b).WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 500 }); } catch { } }
+
+                                                        int nextJ = j + 1;
+                                                        //if (nextJ < innerDataRows.Count)
+                                                        //{
+                                                        //    int nextButtonIndex = nextJ + 1;
+                                                        //    var nextInspectBtn = targetModal.Locator($"button#btt_rd{nextButtonIndex}").First;
+                                                        //    try { await nextInspectBtn.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 6000 }); } catch { }
+                                                        //}
+                                                        if (nextJ == innerDataRows.Count) 
+                                                        {
+                                                            currentButtonIndex++;
+                                                        }
                                                     }
-
-                                                    // 📋 [ของเดิมเป๊ะ] จัดการรวมความกว้างบันทึกสายสตริงลงไฟล์สำรอง CSV 
-                                                    string detailHeaderStr = string.Join(",", detailHeadersList);
-                                                    string detailDataStr = string.Join(",", detailValuesList);
-                                                    string completeHeader = "หัวหน้าแรก_" + mainHeaderStr + "," + mainHeaderStr + "," + innerHeaderStr + "," + detailHeaderStr;
-                                                    if (exportData.Count == 0) { exportData.Add(completeHeader); }
-                                                    exportData.Add(firstPageDataStr + "," + currentMainDataStr + "," + innerDataStr + "," + detailDataStr);
-
-                                                    // ====================================================================
-                                                    // 🎯 [เพิ่มใหม่ยิงตรงคอลัมน์] ดึงจากตารางกลาง + Dictionary ลงตาราง tbWasteScraperDT
-                                                    // ====================================================================
-                                                    try
+                                                }
+                                                else
+                                                {
+                                                    //inspectBtn = duplicateButtons.First;
+                                                    inspectBtn = targetModal.Locator($"button#btt_rd{buttonIndex}").First;
+                                                    if (await inspectBtn.IsVisibleAsync())
                                                     {
+                                                        await inspectBtn.ScrollIntoViewIfNeededAsync();
+                                                        await inspectBtn.ClickAsync(new() { Force = true });
+                                                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-                                                        // ปรับแต่งฟอร์แมตตัวเลขและวันที่ให้ปลอดภัยต่อโครงสร้าง MSSQL
+                                                        // เจาะทะลวงเข้าสู่หน้าต่าง Modal ชั้นลึกสุด
+                                                        var detailModal = page.Locator(".modal-content:visible").Last;
+                                                        var firstInputInModal = detailModal.Locator("input").First;
+                                                        await firstInputInModal.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 60000 });
 
-                                                        int.TryParse(yearVal, out int parsedYear);
-                                                        int.TryParse(itemNo, out int parsedItemNo);
+                                                        // ====================================================================
+                                                        // ✨ หน้าต่างลึกสุดกางเต็มจอสำเร็จ! เริ่มสกัดข้อมูลรายกล่องคู่คอลัมน์...
+                                                        // ====================================================================
+                                                        var detailHeadersList = new List<string>();
+                                                        var detailValuesList = new List<string>();
 
-                                                        int LindedYear = 0; int.TryParse(yearVal, out LindedYear);
-                                                        int LinkedItemNo = 0; int.TryParse(itemNo, out LinkedItemNo);
-                                                        decimal.TryParse(rawQty.Replace(",", ""), out decimal qtyDecimal);
+                                                        // 🎯 ประกาศตัวแปรรับค่าฟิลด์ต่าง ๆ เตรียมไว้ (คงเดิม)
+                                                        string yearVal = "0"; string facRegNo = ""; string facName = ""; string bizOp = "";
+                                                        string addr = ""; string licensee = ""; string process = ""; string tax = ""; string phone = ""; string fax = "";
+                                                        string itemNo = "0"; string wasteCode = ""; string haz = ""; string reason = "";
+                                                        // 🎯 1. เพิ่มตัวแปรพระเอกคู่ใหม่ สำหรับดักจับกล่องฝาแฝด
+                                                        string prop = "";     // สำหรับเก็บค่ากล่อง "ชื่อสิ่งปฏิกูลฯ" ตัวแรก (Properties)
+                                                        string wasteName = ""; // สำหรับเก็บค่ากล่อง "ชื่อสิ่งปฏิกูลฯ" ตัวที่สอง (WasteName)
+                                                        int twinNameCounter = 0; // ตัวนับว่าเจอคำว่า "ชื่อสิ่งปฏิกูล" กี่ครั้งแล้วในหน้านี้
+                                                        var labels = await detailModal.Locator("label").AllAsync();
+                                                        foreach (var lbl in labels)
+                                                        {
+                                                            string headerText = await lbl.InnerTextAsync();
+                                                            headerText = headerText.Replace("\n", " ").Replace("\r", "").Trim();
+                                                            if (string.IsNullOrWhiteSpace(headerText) || headerText.Contains("เอกสารประกอบ")) continue;
 
+                                                            var input = lbl.Locator("xpath=..//input | ..//textarea | ..//select").First;
+                                                            if (await input.CountAsync() > 0)
+                                                            {
+                                                                var isInTable = input.Locator("xpath=ancestor::table[@id='ProduceTable']");
+                                                                if (await isInTable.CountAsync() > 0) continue;
+
+                                                                string val = await input.InputValueAsync();
+                                                                val = val.Replace("\n", " ").Replace("\r", "").Trim();
+
+                                                                // 📋 บันทึกเข้าไฟล์ CSV ของพี่ตามปกติเป๊ะ หัวข้อและข้อมูล CSV อยู่ครบ 100% ไม่พังแน่นอน
+                                                                detailHeadersList.Add($"\"{headerText}\"");
+                                                                detailValuesList.Add($"\"{val}\"");
+
+                                                                // ====================================================================
+                                                                // 🎯 2. สกัดค่าลงฐานข้อมูลรายตัว โดยใช้ระบบตรวจสอบคีย์เวิร์ด + นับจำนวนกล่องแฝด
+                                                                // ====================================================================
+
+                                                                if (headerText.Contains("ชื่อสิ่งปฏิกูล"))
+                                                                {
+                                                                    twinNameCounter++; // นับคิวทันที (กล่องแรกได้ 1, กล่องสองได้ 2)
+                                                                    if (twinNameCounter == 1)
+                                                                    {
+                                                                        prop = val; // คิวแรก (ตัวบน) คือ คุณสมบัติ (Properties)
+                                                                    }
+                                                                    else if (twinNameCounter == 2)
+                                                                    {
+                                                                        wasteName = val; // คิวสอง (ตัวล่าง) คือ WasteName
+                                                                    }
+                                                                }
+                                                                else // กล่องอื่น ๆ ที่ชื่อไม่ซ้ำ ใช้สแกนหาคำคำใกล้เคียงตามปกติได้เลยครับพี่
+                                                                {
+                                                                    if (headerText.Contains("ชื่อผู้รับใบอนูญาต")) licensee = val;
+                                                                    if (headerText.Contains("รายละเอียดของกิจกรรมที่ก่อให้เกิดของเสีย")) process = val;
+                                                                    if (headerText.Contains("ปี")) yearVal = val;
+                                                                    if (headerText.Contains("ทะเบียนโรงงาน")) facRegNo = val;
+                                                                    if (headerText.Contains("ชื่อโรงงาน")) facName = val;
+                                                                    if (headerText.Contains("ประกอบกิจการ")) bizOp = val;
+                                                                    if (headerText.Contains("ที่ตั้ง")) addr = val;
+                                                                    if (headerText.Contains("ผู้เสียภาษี")) tax = val;
+                                                                    if (headerText.Contains("โทรศัพท์")) phone = val;
+                                                                    if (headerText.Contains("โทรสาร")) fax = val;
+                                                                    if (headerText.Contains("รายการที่")) itemNo = val;
+                                                                    if (headerText.Contains("รหัสประเภท")) wasteCode = val;
+                                                                    if (headerText.Contains("HAZ")) haz = val;
+                                                                    if (headerText.Contains("เหตุผล")) reason = val;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 📋 [ของเดิมเป๊ะ] จัดการรวมความกว้างบันทึกสายสตริงลงไฟล์สำรอง CSV 
+                                                        string detailHeaderStr = string.Join(",", detailHeadersList);
+                                                        string detailDataStr = string.Join(",", detailValuesList);
+                                                        string completeHeader = "หัวหน้าแรก_" + mainHeaderStr + "," + mainHeaderStr + "," + innerHeaderStr + "," + detailHeaderStr;
+                                                        if (exportData.Count == 0) { exportData.Add(completeHeader); }
+                                                        exportData.Add(firstPageDataStr + "," + currentMainDataStr + "," + innerDataStr + "," + detailDataStr);
+
+                                                        // ====================================================================
+                                                        // 🎯 [เพิ่มใหม่ยิงตรงคอลัมน์] ดึงจากตารางกลาง + Dictionary ลงตาราง tbWasteScraperDT
+                                                        // ====================================================================
+                                                        try
+                                                        {
+
+                                                            // ปรับแต่งฟอร์แมตตัวเลขและวันที่ให้ปลอดภัยต่อโครงสร้าง MSSQL
+
+                                                            int.TryParse(yearVal, out int parsedYear);
+                                                            int.TryParse(itemNo, out int parsedItemNo);
+
+                                                            int LindedYear = 0; int.TryParse(yearVal, out LindedYear);
+                                                            int LinkedItemNo = 0; int.TryParse(itemNo, out LinkedItemNo);
+                                                            decimal.TryParse(rawQty.Replace(",", ""), out decimal qtyDecimal);
+
+                                                            string formattedDeadlineSql = "NULL";
+                                                            if (DateTime.TryParse(rawDeadline, out DateTime deadDate)) { formattedDeadlineSql = $"'{deadDate:yyyy-MM-dd HH:mm:ss}'"; }
+
+                                                            // 🎯 2. ใช้ลอจิก IF NOT EXISTS คลุมฝั่งตาราง DT ด้วยเช่นกัน เพื่อไม่ให้บันทึกข้อมูลย่อยซ้ำซ้อนซ่อนเงื่อน
+                                                            StringBuilder dtSqlBuilder = new StringBuilder();
+                                                            dtSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperDT WHERE RequestNumber = '{safeReqNum}' AND SequenceNumber = {sequenceCounter} AND  OperatorCode= {operatorCode} )");
+                                                            dtSqlBuilder.AppendLine("BEGIN");
+                                                            dtSqlBuilder.AppendLine("    INSERT INTO tbWasteScraperDT (RequestNumber, SequenceNumber, OperatorCode, OperatorName, [Type], QuantityMetricTons, ManagementCode, AcknowledgementDeadline, [Status], [Year], FactoryRegistrationNumber, FactoryName, BusinessOperation, [Address], LicenseeName, TaxID, Phone, Fax, ItemNumber, WasteTypeCode, HazStatus, Properties, WasteName, WasteGenerationProcess, EvaluationReason)");
+                                                            dtSqlBuilder.AppendLine($"    VALUES ('{safeReqNum}', {sequenceCounter}, '{operatorCode.Replace("'", "''")}', N'{operatorName.Replace("'", "''")}', N'{typeValue.Replace("'", "''")}', {qtyDecimal}, '{managementCode.Replace("'", "''")}', {formattedDeadlineSql}, '{statusDt.Replace("'", "''")}', {LindedYear}, '{facRegNo.Replace("'", "''")}', N'{facName.Replace("'", "''")}', N'{bizOp.Replace("'", "''")}', N'{addr.Replace("'", "''")}', N'{licensee.Replace("'", "''")}', '{tax.Replace("'", "''")}', '{phone.Replace("'", "''")}', '{fax.Replace("'", "''")}', {LinkedItemNo}, '{wasteCode.Replace("'", "''")}', '{haz.Replace("'", "''")}', N'{prop.Replace("'", "''")}', N'{wasteName.Replace("'", "''")}', N'{process.Replace("'", "''")}', N'{reason.Replace("'", "''")}');");
+                                                            dtSqlBuilder.AppendLine("END");
+                                                            sqlBuilder.Append(dtSqlBuilder.ToString());
+
+                                                            UpdateLog($"⚡ สะสมคำสั่ง SQL บันทึกข้อมูล DT แถวที่ {sequenceCounter} สำเร็จ");
+                                                            sequenceCounter++;
+                                                        }
+                                                        catch (Exception ex) { UpdateLog($"⚠️ ข้อผิดพลาดสกัดจัดฟิลด์ SQL DT: {ex.Message}"); }
+
+                                                        await RandomDelay(1000, 2000);
+
+                                                        // ลอจิกปิดหน้าต่างย่อยเพื่อคืนคิวกลับมา
+                                                        var closeBtn = detailModal.Locator("button[data-bs-dismiss='modal'].btn-secondary, button:has-text('ปิด')").First;
+                                                        if (await closeBtn.IsVisibleAsync()) { await closeBtn.ClickAsync(new() { Force = true }); }
+                                                        else { await detailModal.Locator("button.btn-close").First.ClickAsync(new() { Force = true }); }
+
+                                                        var backdrop = page.Locator(".modal-backdrop");
+                                                        int backdropCount = await backdrop.CountAsync();
+                                                        for (int b = 0; b < backdropCount; b++) { try { await backdrop.Nth(b).WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 500 }); } catch { } }
+
+                                                        int nextJ = j + 1;
+                                                        if (nextJ < innerDataRows.Count)
+                                                        {
+                                                            int nextButtonIndex = nextJ + 1;
+                                                            var nextInspectBtn = targetModal.Locator($"button#btt_rd{nextButtonIndex}").First;
+                                                            try { await nextInspectBtn.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 6000 }); } catch { }
+                                                        }
+                                                        currentButtonIndex++;
+                                                    }
+                                                    else
+                                                    {
                                                         string formattedDeadlineSql = "NULL";
-                                                        if (DateTime.TryParse(rawDeadline, out DateTime deadDate)) { formattedDeadlineSql = $"'{deadDate:yyyy-MM-dd HH:mm:ss}'"; }
-
-                                                        // 🎯 2. ใช้ลอจิก IF NOT EXISTS คลุมฝั่งตาราง DT ด้วยเช่นกัน เพื่อไม่ให้บันทึกข้อมูลย่อยซ้ำซ้อนซ่อนเงื่อน
+                                                        if (DateTime.TryParse(rawDeadline, out DateTime deadDate)) { formattedDeadlineSql = $"{deadDate:yyyy-MM-dd HH:mm:ss}"; }
+                                                        decimal.TryParse(rawQty.Replace(",", ""), out decimal qtyDecimal);
                                                         StringBuilder dtSqlBuilder = new StringBuilder();
                                                         dtSqlBuilder.AppendLine($"IF NOT EXISTS (SELECT 1 FROM tbWasteScraperDT WHERE RequestNumber = '{safeReqNum}' AND SequenceNumber = {sequenceCounter} AND  OperatorCode= {operatorCode} )");
                                                         dtSqlBuilder.AppendLine("BEGIN");
-                                                        dtSqlBuilder.AppendLine("    INSERT INTO tbWasteScraperDT (RequestNumber, SequenceNumber, OperatorCode, OperatorName, [Type], QuantityMetricTons, ManagementCode, AcknowledgementDeadline, [Status], [Year], FactoryRegistrationNumber, FactoryName, BusinessOperation, [Address], LicenseeName, TaxID, Phone, Fax, ItemNumber, WasteTypeCode, HazStatus, Properties, WasteName, WasteGenerationProcess, EvaluationReason)");
-                                                        dtSqlBuilder.AppendLine($"    VALUES ('{safeReqNum}', {sequenceCounter}, '{operatorCode.Replace("'", "''")}', N'{operatorName.Replace("'", "''")}', N'{typeValue.Replace("'", "''")}', {qtyDecimal}, '{managementCode.Replace("'", "''")}', {formattedDeadlineSql}, '{statusDt.Replace("'", "''")}', {LindedYear}, '{facRegNo.Replace("'", "''")}', N'{facName.Replace("'", "''")}', N'{bizOp.Replace("'", "''")}', N'{addr.Replace("'", "''")}', N'{licensee.Replace("'", "''")}', '{tax.Replace("'", "''")}', '{phone.Replace("'", "''")}', '{fax.Replace("'", "''")}', {LinkedItemNo}, '{wasteCode.Replace("'", "''")}', '{haz.Replace("'", "''")}', N'{prop.Replace("'", "''")}', N'{wasteName.Replace("'", "''")}', N'{process.Replace("'", "''")}', N'{reason.Replace("'", "''")}');");
+                                                        dtSqlBuilder.AppendLine("    INSERT INTO tbWasteScraperDT (RequestNumber, SequenceNumber, OperatorCode, OperatorName, [Type],QuantityMetricTons, ManagementCode, AcknowledgementDeadline, [Status])");
+                                                        dtSqlBuilder.AppendLine($"    VALUES ('{safeReqNum}', {sequenceCounter}, '{operatorCode.Replace("'", "''")}', N'{operatorName.Replace("'", "''")}', N'{typeValue.Replace("'", "''")}','{qtyDecimal}','{managementCode}','{formattedDeadlineSql}' ,'{statusDt}');");
                                                         dtSqlBuilder.AppendLine("END");
                                                         sqlBuilder.Append(dtSqlBuilder.ToString());
-
-                                                        UpdateLog($"⚡ สะสมคำสั่ง SQL บันทึกข้อมูล DT แถวที่ {sequenceCounter} สำเร็จ");
-                                                        sequenceCounter++;
                                                     }
-                                                    catch (Exception ex) { UpdateLog($"⚠️ ข้อผิดพลาดสกัดจัดฟิลด์ SQL DT: {ex.Message}"); }
-
-                                                    await RandomDelay(1000, 2000);
-
-                                                    // ลอจิกปิดหน้าต่างย่อยเพื่อคืนคิวกลับมา
-                                                    var closeBtn = detailModal.Locator("button[data-bs-dismiss='modal'].btn-secondary, button:has-text('ปิด')").First;
-                                                    if (await closeBtn.IsVisibleAsync()) { await closeBtn.ClickAsync(new() { Force = true }); }
-                                                    else { await detailModal.Locator("button.btn-close").First.ClickAsync(new() { Force = true }); }
-
-                                                    var backdrop = page.Locator(".modal-backdrop");
-                                                    int backdropCount = await backdrop.CountAsync();
-                                                    for (int b = 0; b < backdropCount; b++) { try { await backdrop.Nth(b).WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 500 }); } catch { } }
-
-                                                    int nextJ = j + 1;
-                                                    if (nextJ < innerDataRows.Count)
-                                                    {
-                                                        int nextButtonIndex = nextJ + 1;
-                                                        var nextInspectBtn = targetModal.Locator($"button#btt_rd{nextButtonIndex}").First;
-                                                        try { await nextInspectBtn.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 6000 }); } catch { }
-                                                    }
-                                                    currentButtonIndex++;
                                                 }
                                             }
                                         }
@@ -559,8 +732,6 @@ namespace BWG_WasteScraper
 
                     Dispatcher.Invoke(() =>
                     {
-                        // โยนปุ่มตัวเอง และสร้าง RoutedEventArgs ว่าง ๆ ส่งเข้าไป
-                        //BtnExportExcel_Click(BtnExportExcel, new RoutedEventArgs());
                         ExportExcel();
                     });
 
@@ -698,8 +869,8 @@ namespace BWG_WasteScraper
         }
 
         private void LoadCompanyComboBox()
-        {        
-            string query = @" SELECT Company,TSDFRegisNo14 FROM v_TSDFCompany_Formatted "; 
+        {
+            string query = @" SELECT Company,TSDFRegisNo14 FROM v_TSDFCompany_Formatted ";
 
             try
             {

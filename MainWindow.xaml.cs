@@ -12,16 +12,16 @@ namespace BWG_WasteScraper
             InitializeComponent();
         }
 
-        /*
-        private async void BtnLoginSubmit_Click(object sender, RoutedEventArgs e)
-        {
-            //DEV MODE
-            MainScraperWindow scraperWindow = new MainScraperWindow("DEV MODE");
-            scraperWindow.Show();
 
-            this.Close();
-        }
-        */
+        //private async void BtnLoginSubmit_Click(object sender, RoutedEventArgs e)
+        //{
+        //    //DEV MODE
+        //    MainScraperWindow scraperWindow = new MainScraperWindow("DEV MODE");
+        //    scraperWindow.Show();
+
+        //    this.Close();
+        //}
+
 
         // 🎯 ฟังก์ชันดักจังหวะการกดปุ่ม "🔓 ตรวจสอบสิทธิ์เข้าใช้งาน"
         private async void BtnLoginSubmit_Click(object sender, RoutedEventArgs e)
@@ -66,7 +66,7 @@ namespace BWG_WasteScraper
             // จำลองลอจิก Select Case จากโค้ดเดิมของพี่
             appId = "26";
  
-            string version = "1.0.3"; 
+            string version = "1.0.6"; 
 
             // ใช้ระบบจัดการ Context ด้วยการเปิดท่อเชื่อม SQL Connection 
             using (SqlConnection conn = new SqlConnection(connString))
