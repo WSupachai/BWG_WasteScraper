@@ -5,11 +5,11 @@ using Microsoft.Playwright;
 
 namespace BWG_WasteScraper
 {
-    internal record WasteItem(
-        string ItemTitle, string ItemId, string Status,
-        string WasteCode, string WasteName, string Quantity,
-        string Description, string Hazard, string Response,
-        Dictionary<string, string> Monthly);
+    public record WasteItem(
+    string ItemTitle, string ItemId, string Status,
+    string WasteCode, string WasteName, string Quantity,
+    string Description, string Hazard, string ManagementCodeText, string Response,
+    Dictionary<string, string> Monthly);
 
     internal record AcceptanceDetail(
         string RequestNumber, string Factory, string RequestType, string SubmittedAt,
@@ -76,6 +76,7 @@ namespace BWG_WasteScraper
                     Quantity: await FieldAsync("ปริมาณรับจัดการ (ตัน)"),
                     Description: await FieldAsync("รายละเอียดการก่อให้เกิดสิ่งปฏิกูลหรือวัสดุที่ไม่ใช้แล้ว"),
                     Hazard: await FieldAsync("ความเป็นอันตราย"),
+                    ManagementCodeText: await TextAsync(page.GetByTestId($"acceptance-item-management-code-{itemId}")),
                     Response: response,
                     Monthly: monthly));
             }

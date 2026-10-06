@@ -93,7 +93,9 @@ namespace BWG_WasteScraper
                             d.Hazard                AS [ความเป็นอันตราย],
                             d.ResponseResult        AS [ผลการตอบรับ],
                             h.OperatorFactoryRegNo  AS [เลขทะเบียนโรงงานผู้รับบริการ],
-                            h.OperatorFactoryName   AS [ชื่อผู้รับดำเนินการ]
+                            h.OperatorFactoryName   AS [ชื่อผู้รับดำเนินการ],
+                            d.ManagementCode        AS [รหัสการจัดการ],
+                            d.ManagementCodeText    AS [รายละเอียดวิธีการจัดการ]
                         FROM dbo.Acceptance_HD h
                         LEFT JOIN dbo.Acceptance_DT d ON d.AcceptanceId = h.AcceptanceId
                         WHERE 1=1 ");

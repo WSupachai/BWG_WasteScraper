@@ -12,59 +12,74 @@ namespace BWG_WasteScraper
             InitializeComponent();
         }
 
-        private async void BtnLoginSubmit_Click(object sender, RoutedEventArgs e)
-        {
-            Window nextWindow;
-
-            if (RbOldSystem.IsChecked == true)
-            {
-                nextWindow = new MainScraperWindow("DEV MODE");
-            }
-            else
-            {
-                nextWindow = new WastePermit("DEV MODE"); 
-            }
-           
-            nextWindow.Show();
-            this.Close();
-
-        }
-
-
-        // 🎯 ฟังก์ชันดักจังหวะการกดปุ่ม "🔓 ตรวจสอบสิทธิ์เข้าใช้งาน"
         //private async void BtnLoginSubmit_Click(object sender, RoutedEventArgs e)
-        //{        
-        //    string user = TxtUsername.Text.Trim();
-        //    string pass = TxtPassword.Password.Trim(); // ดึงความลับอย่างปลอดภัยจาก PasswordBox
+        //{
+        //    Window nextWindow;
 
-        //    // ดักฟิลด์ว่างพื้นฐาน
-        //    if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass))
+        //    if (RbOldSystem.IsChecked == true)
         //    {
-        //        MessageBox.Show("กรุณากรอก Username และ Password ให้ครบถ้วนก่อนเข้าสู่ระบบ", "ระบบความปลอดภัย", MessageBoxButton.OK, MessageBoxImage.Warning);
-        //        return;
-        //    }
-
-        //    // ล็อกปุ่มกดชั่วคราว ป้องกันการรัวปุ่มซ้ำขณะคิวรีฐานข้อมูลหมุนอยู่
-        //    BtnLoginSubmit.IsEnabled = false;
-
-        //    // รันการเช็กสิทธิ์ผ่านระบบมัลติเธรด (Async/Await) หน้าจอ Login จะได้ไม่กระตุกค้าง
-        //    string loginResult = await CheckUserAccessAsync(user, pass);
-
-        //    if (loginResult == "True")
-        //    {
-        //        // เปิดหน้ากาก Scraper หลัก โยนสัมภาระกรอกข้อมูลข้ามฟากไป
-        //        MainScraperWindow scraperWindow = new MainScraperWindow(user);
-        //        scraperWindow.Show();
-
-        //        // สั่งทำลายและปิดบานหน้าต่าง Login ทิ้งเพื่อเคลียร์แรม
-        //        this.Close();
+        //        nextWindow = new MainScraperWindow("DEV MODE");
         //    }
         //    else
         //    {
-        //        // ถ้าผลลัพธ์เป็นอย่างอื่น (หรือ False) คืนชีพปุ่มให้Userลองกรอกใหม่
-        //        BtnLoginSubmit.IsEnabled = true;
+        //        nextWindow = new WastePermit("DEV MODE");
         //    }
+
+        //    nextWindow.Show();
+        //    this.Close();
+
         //}
+
+
+        // 🎯 ฟังก์ชันดักจังหวะการกดปุ่ม "🔓 ตรวจสอบสิทธิ์เข้าใช้งาน"
+        private async void BtnLoginSubmit_Click(object sender, RoutedEventArgs e)
+        {
+            string user = TxtUsername.Text.Trim();
+            string pass = TxtPassword.Password.Trim(); // ดึงความลับอย่างปลอดภัยจาก PasswordBox
+
+            // ดักฟิลด์ว่างพื้นฐาน
+            if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass))
+            {
+                MessageBox.Show("กรุณากรอก Username และ Password ให้ครบถ้วนก่อนเข้าสู่ระบบ", "ระบบความปลอดภัย", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // ล็อกปุ่มกดชั่วคราว ป้องกันการรัวปุ่มซ้ำขณะคิวรีฐานข้อมูลหมุนอยู่
+            BtnLoginSubmit.IsEnabled = false;
+
+            // รันการเช็กสิทธิ์ผ่านระบบมัลติเธรด (Async/Await) หน้าจอ Login จะได้ไม่กระตุกค้าง
+            string loginResult = await CheckUserAccessAsync(user, pass);
+
+            if (loginResult == "True")
+            {
+                //// เปิดหน้ากาก Scraper หลัก โยนสัมภาระกรอกข้อมูลข้ามฟากไป
+                //MainScraperWindow scraperWindow = new MainScraperWindow(user);
+                //scraperWindow.Show();
+
+                //// สั่งทำลายและปิดบานหน้าต่าง Login ทิ้งเพื่อเคลียร์แรม
+                //this.Close();
+
+
+                Window nextWindow;
+
+                if (RbOldSystem.IsChecked == true)
+                {
+                    nextWindow = new MainScraperWindow(user);
+                }
+                else
+                {
+                    nextWindow = new WastePermit(user);
+                }
+
+                nextWindow.Show();
+                this.Close();
+            }
+            else
+            {
+                // ถ้าผลลัพธ์เป็นอย่างอื่น (หรือ False) คืนชีพปุ่มให้Userลองกรอกใหม่
+                BtnLoginSubmit.IsEnabled = true;
+            }
+        }
 
         private async Task<string> CheckUserAccessAsync(string userName, string password)
         {
@@ -74,7 +89,7 @@ namespace BWG_WasteScraper
             // จำลองลอจิก Select Case จากโค้ดเดิมของพี่
             appId = "26";
  
-            string version = "1.0.6"; 
+            string version = "1.1.1"; 
 
             // ใช้ระบบจัดการ Context ด้วยการเปิดท่อเชื่อม SQL Connection 
             using (SqlConnection conn = new SqlConnection(connString))

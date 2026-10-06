@@ -387,8 +387,9 @@
                     <DataGridTextColumn Header="ลำดับย่อย" Binding="{Binding ลำดับย่อย}" Width="100"/>
                     <DataGridTextColumn Header="รหัสประเภทหรือชนิดของเสีย" Binding="{Binding รหัสประเภทหรือชนิดของเสีย}" Width="200"/>
                     <DataGridTextColumn Header="ชื่อของเสีย" Binding="{Binding ชื่อของเสีย}" Width="220"/>
-                    <DataGridTextColumn Header="ปริมาณ (ตัน)" Binding="{Binding [ปริมาณ(ตัน)]}" Width="120"/>
-                    <!--<DataGridTextColumn Header="รหัสการจัดการ" Binding="{Binding รหัสการจัดการ}" Width="140"/>-->
+                    <DataGridTextColumn Header="ปริมาณ (ตัน)" Binding="{Binding [ปริมาณ(ตัน)]}" Width="120"/> 
+                    <DataGridTextColumn Header="รหัสการจัดการ" Binding="{Binding รหัสการจัดการ}" Width="140"/>
+                    <DataGridTextColumn Header="รายละเอียดวิธีการจัดการ" Binding="{Binding รายละเอียดวิธีการจัดการ}" Width="240"/>
                     <DataGridTextColumn Header="เลขทะเบียนโรงงานผู้รับบริการ" Binding="{Binding เลขทะเบียนโรงงานผู้รับบริการ}" Width="210"/>
                 </DataGrid.Columns>
             </DataGrid>

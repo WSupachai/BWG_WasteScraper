@@ -96,15 +96,16 @@ UPDATE dbo.Acceptance_DT SET
     AcceptanceId=@AcceptanceId, ItemNo=@ItemNo, ItemStatus=@ItemStatus,
     WasteCode=@WasteCode, WasteCodeText=@WasteCodeText, WasteName=@WasteName,
     QuantityTon=@QuantityTon, WasteDescription=@WasteDescription, Hazard=@Hazard,
+    ManagementCode=@ManagementCode, ManagementCodeText=@ManagementCodeText,
     ResponseResult=@ResponseResult, {mSet}, UpdatedAt=SYSDATETIME()
 WHERE AcceptanceItemId=@AcceptanceItemId;
 IF @@ROWCOUNT = 0
 INSERT INTO dbo.Acceptance_DT
     (AcceptanceItemId, AcceptanceId, ItemNo, ItemStatus, WasteCode, WasteCodeText, WasteName,
-     QuantityTon, WasteDescription, Hazard, ResponseResult, {mCols})
+     QuantityTon, WasteDescription, Hazard, ManagementCode, ManagementCodeText, ResponseResult, {mCols})
 VALUES
     (@AcceptanceItemId, @AcceptanceId, @ItemNo, @ItemStatus, @WasteCode, @WasteCodeText, @WasteName,
-     @QuantityTon, @WasteDescription, @Hazard, @ResponseResult, {mVals});";
+     @QuantityTon, @WasteDescription, @Hazard, @ManagementCode, @ManagementCodeText, @ResponseResult, {mVals});";
 
                 foreach (var it in d.Items)
                 {
@@ -123,6 +124,9 @@ VALUES
                     cmd.Parameters.AddWithValue("@QuantityTon", Db(ParseDecimal(it.Quantity)));
                     cmd.Parameters.AddWithValue("@WasteDescription", it.Description);
                     cmd.Parameters.AddWithValue("@Hazard", it.Hazard);
+                    var mgmtCode = it.ManagementCodeText.Split('-', 2)[0].Trim();
+                    cmd.Parameters.AddWithValue("@ManagementCode", mgmtCode);
+                    cmd.Parameters.AddWithValue("@ManagementCodeText", it.ManagementCodeText);
                     cmd.Parameters.AddWithValue("@ResponseResult", it.Response);
                     for (var m = 0; m < 12; m++)
                         cmd.Parameters.AddWithValue($"@M{m + 1:00}", Db(ParseDecimal(months.ElementAtOrDefault(m) ?? "")));

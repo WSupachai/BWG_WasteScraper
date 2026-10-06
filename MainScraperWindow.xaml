@@ -1,7 +1,7 @@
 ﻿<Window x:Class="BWG_WasteScraper.MainScraperWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="BWG Waste Scraper v1.0.6 - หน้าหลักระบบ" Height="750" Width="900"
+        Title="BWG Waste Scraper v1.1.1 - หน้าหลักระบบ" Height="750" Width="900"
         Background="#121214" WindowStartupLocation="CenterScreen">
 
     <Grid Margin="20">

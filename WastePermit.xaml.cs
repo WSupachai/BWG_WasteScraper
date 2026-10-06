@@ -75,7 +75,7 @@ namespace BWG_WasteScraper
                     //Login(webUser, webPass);
                     const int FactorySwitchDelayMs = 10000;
                     using var playwright = await Playwright.CreateAsync();
-                    await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });
+                    await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
                     var page = await browser.NewPageAsync();
                     // ---------- 1) Login ----------
                     UpdateLog($"🌐 นำทางไปยังหน้าเว็บไซต์: {_targetUrl}");
